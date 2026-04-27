@@ -1,5 +1,6 @@
 package com.example.atm;
 
+import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 
 @MapperScan("com.example.atm.mapper")
 @SpringBootApplication
+@Slf4j
 public class AtmApplication {
 
     public static void main(String[] args) {
@@ -19,12 +21,12 @@ public class AtmApplication {
     @Bean
     public CommandLineRunner checkDatabase(DataSource dataSource) {
         return args -> {
-            System.out.println("【数据库连接测试】正在强制检查...");
+            log.info("【数据库连接测试】正在强制检查...");
             try (Connection conn = dataSource.getConnection()) {
-                System.out.println("【数据库连接成功！】当前数据库: " + conn.getCatalog());
+                log.info("【数据库连接成功！】当前数据库: {}", conn.getCatalog());
             } catch (Exception e) {
-                System.err.println("【数据库连接失败！】" + e.getMessage());
-                e.printStackTrace();
+                log.error("【数据库连接失败！】{}" , e.getMessage(),e);
+
             }
         };
     }

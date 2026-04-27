@@ -11,7 +11,7 @@ public interface TransactionMapper {
 	@Insert("INSERT INTO `transaction`(card, type, amount, remark, to_name, time) " +
 			"VALUES(#{card}, #{type}, #{amount}, #{remark}, #{toName}, #{time})")
 	@Options(useGeneratedKeys = true, keyProperty = "id")
-	int insert(Transaction t);
+	void insert(Transaction t);
 
 	@Select("SELECT id, card, type, amount, remark, to_name AS toName, time " +
 			"FROM `transaction` WHERE card = #{card} ORDER BY time DESC LIMIT 50")

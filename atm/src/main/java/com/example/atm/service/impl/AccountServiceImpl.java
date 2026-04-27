@@ -120,7 +120,7 @@ public class AccountServiceImpl implements AccountService {
 		from.setBalance(fromNew);
 		to.setBalance(toNew);
 
-		return from; // ⭐ 前端只需要“自己”的最新账户
+		return from;
 	}
 
 

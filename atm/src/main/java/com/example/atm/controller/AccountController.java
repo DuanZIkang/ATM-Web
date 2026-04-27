@@ -100,9 +100,9 @@ public class AccountController {
 
     /* --- 转账 --- */
     @PostMapping("/transfer")
-    public Result<String> transfer(@RequestBody TransferRequest req) {
+    public Result<Account> transfer(@RequestBody TransferRequest req) {
 
-        service.transfer(req);
+        Account transfer = service.transfer(req);
 
         Account from = service.getInfo(req.getFromCard());
         Account to = service.getInfo(req.getToCard());
@@ -119,7 +119,7 @@ public class AccountController {
                 to.getName()
         );
 
-        return Result.ok("OK");
+        return Result.ok(transfer);
     }
 
     /* --- 修改密码 --- */

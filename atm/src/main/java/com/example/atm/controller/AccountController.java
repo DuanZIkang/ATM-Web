@@ -8,8 +8,9 @@ import com.example.atm.entity.Transaction;
 import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.Data;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.atm.common.ApiResponse;
+
 
 import java.util.List;
 
@@ -81,19 +82,21 @@ public class AccountController {
 
     /* --- 存款 --- */
     @PostMapping("/deposit")
-    public Result<Double> deposit(@RequestBody DepositRequest req) {
-        double bal = service.deposit(req);
-        transactionService.record(req.getCard(), "DEPOSIT", req.getAmount(), "存款");
-        return Result.ok(bal);
+    public ApiResponse<Account> deposit(@RequestBody DepositRequest req) {
+        Account account = service.deposit(req);
+        
+        return ApiResponse.success(account);
     }
+
 
     /* --- 取款 --- */
     @PostMapping("/withdraw")
-    public Result<Double> withdraw(@RequestBody WithdrawRequest req) {
-        double bal = service.withdraw(req);
-        transactionService.record(req.getCard(), "WITHDRAW", req.getAmount(), "取款");
-        return Result.ok(bal);
+    public ApiResponse<Account> withdraw(@RequestBody WithdrawRequest req) {
+        Account account = service.withdraw(req);
+
+        return ApiResponse.success(account);
     }
+
 
     /* --- 转账 --- */
     @PostMapping("/transfer")

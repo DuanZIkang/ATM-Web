@@ -17,14 +17,14 @@ export default async function initHome() {
 // 获取账号信息
 async function loadAccountInfo(card) {
     try {
-        const res = await axios.get(`${process.env.VUE_APP_API_URL}/info?card=` + card);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/info?card=` + card);
         const data = res.data.data;
 
         document.getElementById("name").textContent = data.name;
         document.getElementById("card").textContent = data.card;
         document.getElementById("balance").textContent = data.balance;
         document.getElementById("gender").textContent = data.sex || "—";
-        document.getElementById("limit").textContent = data.limit || 0;
+        document.getElementById("limit").textContent = data.dailyLimit || 0;  // 修复字段名
 
     } catch (err) {
         alert("账号信息加载失败");
@@ -34,7 +34,7 @@ async function loadAccountInfo(card) {
 // 获取交易记录
 async function loadRecords(card) {
     try {
-        const res = await axios.get(`${process.env.VUE_APP_API_URL}/transactions?card=` + card);
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/transactions?card=` + card);
         const records = res.data.data;
 
         const list = document.getElementById("recordList");

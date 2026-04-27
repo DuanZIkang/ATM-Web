@@ -9,11 +9,11 @@ public interface AccountService {
 
     Account register(Account account);
 
-    double deposit(DepositRequest req);
+    Account deposit(DepositRequest req);
 
-    double withdraw(WithdrawRequest req);
+    Account withdraw(WithdrawRequest req);
 
-    void transfer(TransferRequest req);
+    Account transfer(TransferRequest req);
 
     boolean changePassword(String card, String oldPwd, String newPwd);
 

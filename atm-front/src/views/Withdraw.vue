@@ -39,7 +39,7 @@ async function doWithdraw() {
   }
 
   try {
-    const res = await axios.post(`${process.env.VUE_APP_API_URL}/withdraw`, {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/withdraw`, {
       card: acc.card,
       amount: Number(amount.value)
     });

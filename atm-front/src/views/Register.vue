@@ -11,7 +11,6 @@
         <input v-model="name" class="input" placeholder="请输入姓名" />
       </div>
 
-
       <div class="input-group">
         <label>密码</label>
         <input type="password" v-model="password" class="input" placeholder="请输入密码" />
@@ -61,7 +60,6 @@ export default {
     async submitRegister() {
       this.msg = "";
 
-      // 必填项校验
       if (!this.name || !this.password || !this.confirm || !this.sex) {
         this.msg = "请填写所有字段";
         return;
@@ -73,25 +71,23 @@ export default {
       }
 
       try {
-        // 不传 card，由后端自动生成
-        const res = await axios.post(
-            `${process.env.VUE_APP_API_URL}/register`,
-            {
-              name: this.name,
-              password: this.password,
-              balance: 0,
-              limit: 20000,
-              sex: this.sex
-            }
-        );
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
+          name: this.name,
+          password: this.password,
+          balance: 0,
+          dailyLimit: 20000,   // 确保字段与后端一致
+          sex: this.sex
+        });
 
-        const cardNumber = res.data.data.card;
+        const acc = res.data.data; // 后端返回完整 account 对象
 
-        // 弹窗提示卡号
         alert(
-            `开户成功！您的卡号是：${cardNumber}\n\n` +
+            `开户成功！您的卡号是：${acc.card}\n\n` +
             `请妥善保管，登录时需要使用此卡号。\n点击确定进入首页。`
         );
+
+        // 必须保存到 localStorage，否则首页无法加载数据
+        localStorage.setItem("account", JSON.stringify(acc));
 
         this.$router.push("/home");
 
@@ -101,6 +97,6 @@ export default {
     }
   }
 };
-
 </script>
+
 <style src="@/assets/styles/register.css"></style>

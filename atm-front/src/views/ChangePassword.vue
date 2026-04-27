@@ -30,7 +30,7 @@ async function changePwd() {
   const acc = JSON.parse(localStorage.getItem("account"));
   if (!acc) return;
 
-  await axios.post(`${process.env.VUE_APP_API_URL}/change`, {
+  await axios.post(`${import.meta.env.VITE_API_URL}/change`, {
     card: acc.card,
     oldPwd: oldPwd.value,
     newPwd: newPwd.value

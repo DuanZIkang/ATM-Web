@@ -1,6 +1,8 @@
 package com.example.atm.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
@@ -15,6 +17,8 @@ import java.io.Serializable;
  */
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Account implements Serializable {
 
     private String card;
@@ -25,19 +29,9 @@ public class Account implements Serializable {
     private String sex;
 
     // 数据库 limit 字段
-    private double limit;
+    private double dailyLimit;
 
     private double balance;
 
-    public Account() {}
 
-    public Account(String card, String name, String password,
-                   double balance, double limit, String sex) {
-        this.card = card;
-        this.name = name;
-        this.password = password;
-        this.balance = balance;
-        this.limit = limit;
-        this.sex = sex;
-    }
 }

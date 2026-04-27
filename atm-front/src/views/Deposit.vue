@@ -28,7 +28,7 @@ async function doDeposit() {
   const acc = JSON.parse(localStorage.getItem("account"));
   if (!acc) return;
 
-  await axios.post(`${process.env.VUE_APP_API_URL}/deposit`, {
+  await axios.post(`${import.meta.env.VITE_API_URL}/deposit`, {
     card: acc.card,
     amount: Number(amount.value)
   });

@@ -57,7 +57,7 @@ async function doLogin() {
       return;
     }
 
-    localStorage.setItem("account", JSON.stringify(res.data.data));
+    sessionStorage.setItem("account", JSON.stringify(res.data.data));
 
     router.push("/home");
   } catch (e) {

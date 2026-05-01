@@ -13,13 +13,13 @@
 export default {
   computed:{
     account(){
-      const a = localStorage.getItem("account");
+      const a = sessionStorage.getItem("account");
       return a ? JSON.parse(a) : null;
     }
   },
   methods:{
     logout(){
-      localStorage.removeItem("account");
+      sessionStorage.removeItem("account");
       this.$router.push("/");
     }
   }

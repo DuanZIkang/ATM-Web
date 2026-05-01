@@ -30,7 +30,7 @@ export default {
     }
   },
   async created(){
-    const acc = JSON.parse(localStorage.getItem("account"));
+    const acc = JSON.parse(sessionStorage.getItem("account"));
     const r = await axios.get(`${import.meta.env.VITE_API_URL}/info`, {
       params:{ card: acc.card }
     });

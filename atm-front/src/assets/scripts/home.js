@@ -2,7 +2,7 @@ import axios from "axios";
 
 export default async function initHome() {
 
-    const acc = JSON.parse(localStorage.getItem("account"));
+    const acc = JSON.parse(sessionStorage.getItem("account"));
     if (!acc) {
         window.location.href = "/login";
         return;

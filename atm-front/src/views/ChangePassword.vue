@@ -27,7 +27,7 @@ const newPwd = ref("");
 const router = useRouter();
 
 async function changePwd() {
-  const acc = JSON.parse(localStorage.getItem("account"));
+  const acc = JSON.parse(sessionStorage.getItem("account"));
   if (!acc) return;
 
   await axios.post(`${import.meta.env.VITE_API_URL}/change`, {

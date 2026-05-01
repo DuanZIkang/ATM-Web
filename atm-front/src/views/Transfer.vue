@@ -30,7 +30,7 @@ const router = useRouter();
 async function doTransfer() {
   msg.value = "按钮已触发"; // 确认按钮触发
 
-  const acc = JSON.parse(localStorage.getItem("account"));
+  const acc = JSON.parse(sessionStorage.getItem("account"));
   if (!acc) {
     msg.value = "未登录";
     return;
@@ -57,7 +57,7 @@ async function doTransfer() {
 
     // 更新余额
     acc.balance = res.data.data;
-    localStorage.setItem("account", JSON.stringify(acc));
+    sessionStorage.setItem("account", JSON.stringify(acc));
 
     msg.value = `转账成功，当前余额：${acc.balance}元`;
     router.push("/home");

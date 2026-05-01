@@ -87,7 +87,7 @@ export default {
         );
 
         // 必须保存到 localStorage，否则首页无法加载数据
-        localStorage.setItem("account", JSON.stringify(acc));
+        sessionStorage.setItem("account", JSON.stringify(acc));
 
         this.$router.push("/home");
 

@@ -25,10 +25,10 @@ const amount = ref("");
 const router = useRouter();
 
 async function doDeposit() {
-  const acc = JSON.parse(localStorage.getItem("account"));
+  const acc = JSON.parse(sessionStorage.getItem("account"));
   if (!acc) return;
 
-  await axios.post("http://localhost:8090/api/atm/deposit", {
+  await axios.post(`${import.meta.env.VITE_API_URL}/deposit`, {
     card: acc.card,
     amount: Number(amount.value)
   });

@@ -1,28 +1,35 @@
 package com.example.atm.common;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-public class Result<T> {
-    private int code;   // 状态码：200成功，400失败
-    private String msg; // 描述信息
-    private T data;     // 返回数据
+@AllArgsConstructor
+@NoArgsConstructor
+public class Result {
+	private boolean success;
+	private String message;
+	private Object data;
 
-    // 成功
-    public static <T> Result<T> success(T data) {
-        Result<T> r = new Result<>();
-        r.setCode(200);
-        r.setMsg("success");
-        r.setData(data);
-        return r;
-    }
+	public static Result ok(Object data) {
+		Result r = new Result();
+		r.success = true;
+		r.data = data;
+		return r;
+	}
 
-    // 失败
-    public static <T> Result<T> error(String msg) {
-        Result<T> r = new Result<>();
-        r.setCode(400);
-        r.setMsg(msg);
-        r.setData(null);
-        return r;
-    }
+	public static Result ok() {
+		Result r = new Result();
+		r.success = true;
+		return r;
+	}
+
+
+	public static Result err(String msg) {
+		Result r = new Result();
+		r.success = false;
+		r.message = msg;
+		return r;
+	}
 }

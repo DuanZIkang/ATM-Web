@@ -32,14 +32,14 @@ const router = useRouter();
 async function doWithdraw() {
   msg.value = "按钮已触发"; // 确认按钮触发
 
-  const acc = JSON.parse(localStorage.getItem("account"));
+  const acc = JSON.parse(sessionStorage.getItem("account"));
   if (!acc) {
     msg.value = "未登录";
     return;
   }
 
   try {
-    const res = await axios.post("http://localhost:8090/api/atm/withdraw", {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/withdraw`, {
       card: acc.card,
       amount: Number(amount.value)
     });
@@ -52,7 +52,7 @@ async function doWithdraw() {
 
     // 更新余额
     acc.balance = res.data.data;
-    localStorage.setItem("account", JSON.stringify(acc));
+    sessionStorage.setItem("account", JSON.stringify(acc));
 
     msg.value = `取款成功，当前余额：${acc.balance}元`;
     router.push("/home");

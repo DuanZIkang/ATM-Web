@@ -35,3 +35,9 @@ out/
 
 ### VS Code ###
 .vscode/
+# 忽略日志文件
+*.log
+/logs/
+# 忽略 Gradle 打包生成的临时文件
+/build/
+.gradle/

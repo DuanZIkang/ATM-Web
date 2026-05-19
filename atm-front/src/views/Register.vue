@@ -12,11 +12,6 @@
       </div>
 
       <div class="input-group">
-        <label>卡号</label>
-        <input v-model="card" class="input" placeholder="请输入卡号（8~20位）" />
-      </div>
-
-      <div class="input-group">
         <label>密码</label>
         <input type="password" v-model="password" class="input" placeholder="请输入密码" />
       </div>
@@ -44,5 +39,64 @@
   </div>
 </template>
 
-<script src="@/assets/scripts/register.js"></script>
+<script>
+import axios from "axios";
+import NavBar from "@/components/NavBar.vue";
+
+export default {
+  components: { NavBar },
+
+  data() {
+    return {
+      name: "",
+      password: "",
+      confirm: "",
+      sex: "",
+      msg: ""
+    };
+  },
+
+  methods: {
+    async submitRegister() {
+      this.msg = "";
+
+      if (!this.name || !this.password || !this.confirm || !this.sex) {
+        this.msg = "请填写所有字段";
+        return;
+      }
+
+      if (this.password !== this.confirm) {
+        this.msg = "两次密码不一致";
+        return;
+      }
+
+      try {
+        const res = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
+          name: this.name,
+          password: this.password,
+          balance: 0,
+          dailyLimit: 20000,   // 确保字段与后端一致
+          sex: this.sex
+        });
+
+        const acc = res.data.data; // 后端返回完整 account 对象
+
+        alert(
+            `开户成功！您的卡号是：${acc.card}\n\n` +
+            `请妥善保管，登录时需要使用此卡号。\n点击确定进入首页。`
+        );
+
+        // 必须保存到 localStorage，否则首页无法加载数据
+        sessionStorage.setItem("account", JSON.stringify(acc));
+
+        this.$router.push("/home");
+
+      } catch (e) {
+        this.msg = e.response?.data || "服务器错误";
+      }
+    }
+  }
+};
+</script>
+
 <style src="@/assets/styles/register.css"></style>

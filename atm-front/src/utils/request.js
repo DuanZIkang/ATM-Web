@@ -1,7 +1,7 @@
 import axios from "axios";
-
+const BASE_URL = "";
 const service = axios.create({
-    baseURL: "http://localhost:8090/api/atm", // 后端接口地址（端口你刚才改成8090了）
+    baseURL:  BASE_URL + "/api/atm", // 后端接口地址（端口你刚才改成8090了）
     timeout: 5000
 });
 

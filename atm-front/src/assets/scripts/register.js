@@ -7,7 +7,6 @@ export default {
     data() {
         return {
             name: "",
-            card: "",
             password: "",
             confirm: "",
             sex: "",
@@ -19,7 +18,8 @@ export default {
         async submitRegister() {
             this.msg = "";
 
-            if (!this.name || !this.card || !this.password || !this.confirm || !this.sex) {
+            // 必填项校验
+            if (!this.name || !this.password || !this.confirm || !this.sex) {
                 this.msg = "请填写所有字段";
                 return;
             }
@@ -29,23 +29,28 @@ export default {
                 return;
             }
 
-            if (this.card.length < 8 || this.card.length > 20) {
-                this.msg = "卡号长度必须在 8~20 位之间";
-                return;
-            }
-
             try {
-                const res = await axios.post("http://localhost:8090/api/atm/register", {
-                    name: this.name,
-                    card: this.card,
-                    password: this.password,
-                    balance: 0,
-                    limit: 20000,
-                    sex: this.sex
-                });
+                // 不传 card，由后端自动生成
+                const res = await axios.post(
+                    `${process.env.VUE_APP_API_URL}/register`,
+                    {
+                        name: this.name,
+                        password: this.password,
+                        balance: 0,
+                        limit: 20000,
+                        sex: this.sex
+                    }
+                );
 
-                this.msg = "开户成功！即将跳转登录...";
-                setTimeout(() => this.$router.push("/login"), 1500);
+                const cardNumber = res.data.data.card;
+
+                // 弹窗提示卡号
+                alert(
+                    `开户成功！您的卡号是：${cardNumber}\n\n` +
+                    `请妥善保管，登录时需要使用此卡号。\n点击确定进入首页。`
+                );
+
+                this.$router.push("/home");
 
             } catch (e) {
                 this.msg = e.response?.data || "服务器错误";

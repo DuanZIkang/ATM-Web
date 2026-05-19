@@ -19,8 +19,10 @@
 <script>
 import NavBar from '@/components/NavBar.vue';
 import axios from 'axios';
+import {createRouter as $router} from "vue-router";
 
 export default {
+  methods: {$router},
   components:{NavBar},
   data(){
     return{
@@ -28,8 +30,8 @@ export default {
     }
   },
   async created(){
-    const acc = JSON.parse(localStorage.getItem("account"));
-    const r = await axios.get("http://localhost:8090/api/atm/info", {
+    const acc = JSON.parse(sessionStorage.getItem("account"));
+    const r = await axios.get(`${import.meta.env.VITE_API_URL}/info`, {
       params:{ card: acc.card }
     });
     this.info = r.data;

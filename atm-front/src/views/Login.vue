@@ -1,5 +1,6 @@
 <template>
   <div class="login-container">
+
     <div class="login-card">
 
       <h2 class="login-title">账户登录</h2>
@@ -30,7 +31,7 @@
 import { ref } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
-import { encryptPassword } from "@/assets/scripts/encryption";  // 引入加密方法
+import { encryptPassword } from "@/assets/scripts/encryption";
 
 const card = ref("");
 const password = ref("");
@@ -41,12 +42,14 @@ async function doLogin() {
   msg.value = "";
 
   try {
-    // 对密码进行加密
     const encryptedPassword = encryptPassword(password.value);
 
-    const res = await axios.post("http://localhost:8090/api/atm/login", {
+    // 使用 Vite 环境变量
+    const api = import.meta.env.VITE_API_URL;
+
+    const res = await axios.post(`${api}/login`, {
       card: card.value,
-      password: encryptedPassword  // 发送加密后的密码
+      password: encryptedPassword
     });
 
     if (!res.data.success) {
@@ -54,14 +57,14 @@ async function doLogin() {
       return;
     }
 
-    // 只保存真正的账户对象
-    localStorage.setItem("account", JSON.stringify(res.data.data));
-    router.push("/home");
+    sessionStorage.setItem("account", JSON.stringify(res.data.data));
 
+    router.push("/home");
   } catch (e) {
     msg.value = "服务器错误";
   }
 }
+
 </script>
 
 <style scoped>

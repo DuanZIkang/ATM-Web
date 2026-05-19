@@ -24,14 +24,11 @@ public class Account implements Serializable {
     private String card;
     private String name;
     private String password;
-
     // 数据库 sex 字段
     private String sex;
-
     // 数据库 limit 字段
     private double dailyLimit;
-
     private double balance;
-
+    private String token;
 
 }

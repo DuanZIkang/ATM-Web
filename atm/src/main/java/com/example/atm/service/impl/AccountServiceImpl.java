@@ -1,6 +1,8 @@
 package com.example.atm.service.impl;
 
+import com.example.atm.Utils.JwtUtils;
 import com.example.atm.Utils.PasswordUtils;
+import com.example.atm.common.exception.CryptoServiceException;
 import com.example.atm.dto.DepositRequest;
 import com.example.atm.dto.TransferRequest;
 import com.example.atm.dto.WithdrawRequest;
@@ -9,11 +11,15 @@ import com.example.atm.mapper.AccountMapper;
 import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 public class AccountServiceImpl implements AccountService {
@@ -49,17 +55,24 @@ public class AccountServiceImpl implements AccountService {
 	// ✅ 登录（保留你原本的【密码解密】逻辑）
 	@Override
 	public Account login(String card, String password) {
-		Account account = mapper.findByCard(card);
+		Account account = mapper.login(card);
 		if (account == null) {
 			throw new RuntimeException("卡号不存在");
 		}
+		Map<String, Object> claims = new HashMap<>();
+		claims.put("card", account.getCard());
+		claims.put("name",account.getName());
+		String token = JwtUtils.generateToken(claims);
+		account.setToken(token);
 		String decryptedPassword;
 		try {
 			decryptedPassword = PasswordUtils.decryptPassword(password);
 		} catch (IllegalArgumentException iae) {
-			throw new RuntimeException("加密配置错误: " + iae.getMessage());
+			log.error("加密配置错误:{}", iae.getMessage());
+			throw new CryptoServiceException("服务器内部错误");
 		} catch (Exception e) {
-			throw new RuntimeException("密码解密失败" + e.getMessage());
+			log.error("密码解密失败{}", e.getMessage());
+			throw new CryptoServiceException("服务器内部错误");
 		}
 		if (!account.getPassword().equals(decryptedPassword)) {
 			throw new RuntimeException("密码错误");

@@ -9,6 +9,16 @@ public interface AccountMapper {
     @Select("""
         SELECT card,
                name,
+               balance,
+               daily_limit AS dailyLimit,
+               sex
+        FROM account
+        WHERE card = #{card}
+    """)
+    Account findByCard(String card);
+    @Select("""
+        SELECT card,
+               name,
                password,
                balance,
                daily_limit AS dailyLimit,
@@ -16,7 +26,7 @@ public interface AccountMapper {
         FROM account
         WHERE card = #{card}
     """)
-    Account findByCard(@Param("card") String card);
+    Account login(String card);
 
     @Insert("""
         INSERT INTO account(card, name, password, balance, daily_limit, sex)

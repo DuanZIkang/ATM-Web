@@ -8,7 +8,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
-@CrossOrigin
 public class TransactionController {
 
     private final TransactionMapper mapper;

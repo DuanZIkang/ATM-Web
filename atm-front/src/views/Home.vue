@@ -36,8 +36,10 @@
 import "@/assets/styles/home.css"
 import NavBar from "@/components/NavBar.vue";
 import initHome from '@/assets/scripts/home.js';
+import {createRouter as $router} from "vue-router";
 
 export default {
+  methods: {$router},
   components: { NavBar },
 
   mounted() {

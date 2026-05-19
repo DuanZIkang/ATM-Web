@@ -15,10 +15,10 @@
         <p><strong>每日限额：</strong><span id="limit"></span> 元</p>
 
         <div class="btn-group">
-          <button class="btn" @click="$router.push('/deposit')">存款</button>
-          <button class="btn" @click="$router.push('/withdraw')">取款</button>
-          <button class="btn" @click="$router.push('/transfer')">转账</button>
-          <button class="btn" @click="$router.push('/change-password')">修改密码</button>
+          <button class="btn" @click="router.push('/deposit')">存款</button>
+          <button class="btn" @click="router.push('/withdraw')">取款</button>
+          <button class="btn" @click="router.push('/transfer')">转账</button>
+          <button class="btn" @click="router.push('/change-password')">修改密码</button>
         </div>
       </div>
 
@@ -36,14 +36,18 @@
 import "@/assets/styles/home.css"
 import NavBar from "@/components/NavBar.vue";
 import initHome from '@/assets/scripts/home.js';
-import {createRouter as $router} from "vue-router";
+import { useRouter } from "vue-router";  // ✅ 改这里
 
 export default {
-  methods: {$router},
   components: { NavBar },
 
-  mounted() {
-    initHome();   // 🟦 调用 home.js 中的初始化函数
+  setup() {
+    const router = useRouter();  // ✅ 拿到真正的 router 实例
+    return { router };
   },
-};
+
+  mounted() {
+    initHome();
+  },
+}
 </script>

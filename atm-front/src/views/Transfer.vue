@@ -11,6 +11,7 @@
 
         <button class="btn" @click="doTransfer">确认转账</button>
         <button class="btn secondary" @click="$router.push('/home')">返回</button>
+        <p>{{ msg }}</p>
       </div>
     </div>
   </div>
@@ -28,11 +29,10 @@ const msg = ref("");
 const router = useRouter();
 
 async function doTransfer() {
-  msg.value = "按钮已触发"; // 确认按钮触发
-
-  const acc = JSON.parse(sessionStorage.getItem("account"));
-  if (!acc) {
-    msg.value = "未登录";
+  // ✅ 从 userInfo 读取 card
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  if (!userInfo) {
+    router.push("/login");
     return;
   }
 
@@ -42,31 +42,27 @@ async function doTransfer() {
   }
 
   try {
-    // 请求转账
     const res = await axios.post(`${import.meta.env.VITE_API_URL}/transfer`, {
-      fromCard: acc.card,
+      fromCard: userInfo.card,
       toCard: toCard.value,
       amount: Number(amount.value)
+    }, {
+      headers: { token: sessionStorage.getItem("token") }
     });
 
-    // 确保后端返回了新的余额
-    if (!res.data || !res.data.data) {
-      msg.value = "转账失败";
-      return;
+    if (res.data.success) {
+      // ✅ 更新 userInfo 里的余额
+      userInfo.balance = res.data.data.balance;
+      sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+      msg.value = `转账成功，当前余额：${userInfo.balance} 元`;
+      router.push("/home");
+    } else {
+      msg.value = res.data.message || "转账失败";
     }
-
-    // 更新余额
-    acc.balance = res.data.data;
-    sessionStorage.setItem("account", JSON.stringify(acc));
-
-    msg.value = `转账成功，当前余额：${acc.balance}元`;
-    router.push("/home");
-
   } catch (e) {
     msg.value = "服务器错误或余额不足";
   }
 }
-
 </script>
 
 <style scoped>

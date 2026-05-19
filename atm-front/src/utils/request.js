@@ -1,22 +1,29 @@
 import axios from "axios";
-const BASE_URL = "";
-const service = axios.create({
-    baseURL:  BASE_URL + "/api/atm", // 后端接口地址（端口你刚才改成8090了）
-    timeout: 5000
+import router from "@/router";
+
+const request = axios.create({
+    baseURL: import.meta.env.VITE_API_URL,
 });
 
-// 请求拦截器（可选）
-service.interceptors.request.use(config => {
+// ✅ 请求拦截：自动注入 token，不用每个页面手动写
+request.interceptors.request.use(config => {
+    const token = sessionStorage.getItem("token");
+    if (token) {
+        config.headers["token"] = token;
+    }
     return config;
-}, error => {
-    return Promise.reject(error);
 });
 
-// 响应拦截器（可选）
-service.interceptors.response.use(response => {
-    return response.data;
-}, error => {
-    return Promise.reject(error);
-});
+// ✅ 响应拦截：401 自动清除登录态并跳回登录页
+request.interceptors.response.use(
+    res => res,
+    err => {
+        if (err.response?.status === 401) {
+            sessionStorage.clear();
+            router.push("/login");
+        }
+        return Promise.reject(err);
+    }
+);
 
-export default service;
+export default request;

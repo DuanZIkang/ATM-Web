@@ -2,7 +2,6 @@ package com.example.atm.mapper;
 
 import com.example.atm.entity.Account;
 import org.apache.ibatis.annotations.*;
-
 @Mapper
 public interface AccountMapper {
 
@@ -49,4 +48,6 @@ public interface AccountMapper {
     """)
     void updatePassword(@Param("card") String card,
                         @Param("newPwd") String newPwd);
+//    @Select("SELECT * FROM account")
+//	List<Account> findAll();
 }

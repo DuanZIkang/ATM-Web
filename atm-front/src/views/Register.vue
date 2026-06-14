@@ -42,6 +42,7 @@
 <script>
 import axios from "axios";
 import NavBar from "@/components/NavBar.vue";
+import { encryptPassword } from "@/assets/scripts/encryption";
 
 export default {
   components: { NavBar },
@@ -73,7 +74,7 @@ export default {
       try {
         const res = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
           name: this.name,
-          password: this.password,
+          password: encryptPassword(this.password),
           balance: 0,
           dailyLimit: 20000,   // 确保字段与后端一致
           sex: this.sex

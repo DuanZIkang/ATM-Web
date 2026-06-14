@@ -8,6 +8,7 @@ public interface AccountMapper {
     @Select("""
         SELECT card,
                name,
+               password,
                balance,
                daily_limit AS dailyLimit,
                sex
@@ -48,6 +49,5 @@ public interface AccountMapper {
     """)
     void updatePassword(@Param("card") String card,
                         @Param("newPwd") String newPwd);
-//    @Select("SELECT * FROM account")
-//	List<Account> findAll();
+
 }

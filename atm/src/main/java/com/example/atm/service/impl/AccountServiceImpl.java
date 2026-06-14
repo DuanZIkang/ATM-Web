@@ -180,15 +180,5 @@ public class AccountServiceImpl implements AccountService {
 	public Account getInfo(String card) {
 		return mapper.findByCard(card);
 	}
-//	@jakarta.annotation.PostConstruct
-//	public void migratePasswords() {
-//		List<Account> all = mapper.findAll(); // mapper 里需要加 findAll 方法
-//		for (Account a : all) {
-//			if (a.getPassword() != null && !a.getPassword().startsWith("$2a$")) {
-//				log.info("迁移账户 {} 的密码", a.getCard());
-//				mapper.updatePassword(a.getCard(), bcrypt.encode(a.getPassword()));
-//			}
-//		}
-//		log.info("密码迁移完成");
-//	}
+
 }

@@ -25,14 +25,13 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
-import {createRouter as $router, useRouter} from "vue-router";
+import { useRouter} from "vue-router";
 import { encryptPassword } from "@/assets/scripts/encryption";
 
 const card = ref("");
 const password = ref("");
 const msg = ref("");
 const router = useRouter();
-
 async function doLogin() {
   msg.value = "";
   try {

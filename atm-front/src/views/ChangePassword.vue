@@ -11,6 +11,7 @@
 
         <button class="btn" @click="changePwd">确认修改</button>
         <button class="btn secondary" @click="$router.push('/home')">返回</button>
+        <p>{{ msg }}</p>
       </div>
     </div>
   </div>
@@ -21,39 +22,43 @@ import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { encryptPassword } from "@/assets/scripts/encryption";
 
 const oldPwd = ref("");
 const newPwd = ref("");
+const msg = ref("");
 const router = useRouter();
 
 async function changePwd() {
-  const acc = JSON.parse(sessionStorage.getItem("account"));
-  if (!acc) return;
+  // ✅ 从 userInfo 读取 card
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  if (!userInfo) {
+    router.push("/login");
+    return;
+  }
 
-  await axios.post(`${import.meta.env.VITE_API_URL}/change`, {
-    card: acc.card,
-    oldPwd: oldPwd.value,
-    newPwd: newPwd.value
-  });
+  try {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/change`, {
+      card: userInfo.card,
+      // ✅ 旧密码和新密码都 AES 加密后传输
+      oldPwd: encryptPassword(oldPwd.value),
+      newPwd: encryptPassword(newPwd.value)
+    }, {
+      headers: { token: sessionStorage.getItem("token") }
+    });
 
-  router.push("/home");
+    if (res.data.success) {
+      msg.value = "修改成功";
+      router.push("/home");
+    } else {
+      msg.value = res.data.message || "修改失败";
+    }
+  } catch (e) {
+    msg.value = "服务器错误";
+  }
 }
 </script>
 
-<style scoped>
-.card-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
-}
-.card {
-  width: 400px;
-  background: #fff;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-}
-</style>
 <style scoped>
 @import "@/assets/styles/ChangePassword.css";
 </style>

@@ -18,8 +18,6 @@
 </template>
 
 <script setup>
-console.log("Withdraw.vue 已加载"); // 必须能看到
-
 import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
 import { ref } from "vue";
@@ -30,39 +28,34 @@ const msg = ref("");
 const router = useRouter();
 
 async function doWithdraw() {
-  msg.value = "按钮已触发"; // 确认按钮触发
-
-  const acc = JSON.parse(sessionStorage.getItem("account"));
-  if (!acc) {
-    msg.value = "未登录";
+  // ✅ 从 userInfo 读取 card
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  if (!userInfo) {
+    router.push("/login");
     return;
   }
 
   try {
     const res = await axios.post(`${import.meta.env.VITE_API_URL}/withdraw`, {
-      card: acc.card,
+      card: userInfo.card,
       amount: Number(amount.value)
+    }, {
+      headers: { token: sessionStorage.getItem("token") }
     });
 
-    // 确认返回的是余额数据
-    if (!res.data || !res.data.data) {
-      msg.value = "取款失败";
-      return;
+    if (res.data.success) {
+      // ✅ 更新 userInfo 里的余额
+      userInfo.balance = res.data.data.balance;
+      sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+      msg.value = `取款成功，当前余额：${userInfo.balance} 元`;
+      router.push("/home");
+    } else {
+      msg.value = res.data.message || "取款失败";
     }
-
-    // 更新余额
-    acc.balance = res.data.data;
-    sessionStorage.setItem("account", JSON.stringify(acc));
-
-    msg.value = `取款成功，当前余额：${acc.balance}元`;
-    router.push("/home");
-
   } catch (e) {
     msg.value = "服务器错误或余额不足";
   }
 }
-
-
 </script>
 
 <style scoped>

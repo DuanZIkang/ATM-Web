@@ -10,6 +10,7 @@
 
         <button class="btn" @click="doDeposit">确认存款</button>
         <button class="btn secondary" @click="$router.push('/home')">返回</button>
+        <p>{{ msg }}</p>
       </div>
     </div>
   </div>
@@ -22,18 +23,36 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 
 const amount = ref("");
+const msg = ref("");
 const router = useRouter();
 
 async function doDeposit() {
-  const acc = JSON.parse(sessionStorage.getItem("account"));
-  if (!acc) return;
+  // ✅ 从 userInfo 读取 card
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
+  if (!userInfo) {
+    router.push("/login");
+    return;
+  }
 
-  await axios.post(`${import.meta.env.VITE_API_URL}/deposit`, {
-    card: acc.card,
-    amount: Number(amount.value)
-  });
+  try {
+    const res = await axios.post(`${import.meta.env.VITE_API_URL}/deposit`, {
+      card: userInfo.card,
+      amount: Number(amount.value)
+    }, {
+      headers: { token: sessionStorage.getItem("token") }
+    });
 
-  router.push("/home");
+    if (res.data.success) {
+      // ✅ 更新 userInfo 里的余额
+      userInfo.balance = res.data.data.balance;
+      sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
+      router.push("/home");
+    } else {
+      msg.value = res.data.message || "存款失败";
+    }
+  } catch (e) {
+    msg.value = "服务器错误";
+  }
 }
 </script>
 

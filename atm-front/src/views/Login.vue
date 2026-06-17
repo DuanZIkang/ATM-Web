@@ -1,8 +1,6 @@
 <template>
   <div class="login-container">
-
     <div class="login-card">
-
       <h2 class="login-title">账户登录</h2>
 
       <div class="form-group">
@@ -16,13 +14,10 @@
       </div>
 
       <button class="btn" @click="doLogin">登录</button>
-
       <p class="msg">{{ msg }}</p>
-
       <button class="btn-text" @click="$router.push('/register')">
         没有账户？去开户 →
       </button>
-
     </div>
   </div>
 </template>
@@ -30,21 +25,17 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
-import { useRouter } from "vue-router";
+import { useRouter} from "vue-router";
 import { encryptPassword } from "@/assets/scripts/encryption";
 
 const card = ref("");
 const password = ref("");
 const msg = ref("");
 const router = useRouter();
-
 async function doLogin() {
   msg.value = "";
-
   try {
     const encryptedPassword = encryptPassword(password.value);
-
-    // 使用 Vite 环境变量
     const api = import.meta.env.VITE_API_URL;
 
     const res = await axios.post(`${api}/login`, {
@@ -57,14 +48,23 @@ async function doLogin() {
       return;
     }
 
-    sessionStorage.setItem("account", JSON.stringify(res.data.data));
+    const data = res.data.data;
 
-    router.push("/home");
+    // ✅ 只存 token，其余存展示用的非敏感信息，彻底不存密码
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("userInfo", JSON.stringify({
+      card: data.card,
+      name: data.name,
+      sex: data.sex,
+      dailyLimit: data.dailyLimit,
+      balance: data.balance
+    }));
+
+    await router.push("/home");
   } catch (e) {
     msg.value = "服务器错误";
   }
 }
-
 </script>
 
 <style scoped>

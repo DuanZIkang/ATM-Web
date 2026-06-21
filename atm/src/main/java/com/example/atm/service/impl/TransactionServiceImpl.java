@@ -5,6 +5,7 @@ import com.example.atm.mapper.TransactionMapper;
 import com.example.atm.service.TransactionService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -18,7 +19,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public void record(String card, String type, double amount, String remark) {
+    public void record(String card, String type, BigDecimal amount, String remark) {
         Transaction t = new Transaction();
         t.setCard(card);
         t.setType(type);
@@ -30,7 +31,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public void recordTransfer(String fromCard, String toCard, double amount, String fromName, String toName) {
+    public void recordTransfer(String fromCard, String toCard, BigDecimal amount, String fromName, String toName) {
 
         // 转出记录：显示“转账给：对方姓名”
         Transaction out = new Transaction();

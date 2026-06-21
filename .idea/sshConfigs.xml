@@ -2,7 +2,7 @@
 <project version="4">
   <component name="SshConfigs">
     <configs>
-      <sshConfig authType="PASSWORD" host="124.71.40.86" id="33d0be77-c2f8-4f00-8541-f101f89252c4" port="22" nameFormat="DESCRIPTIVE" username="root" useOpenSSHConfig="false" />
+      <sshConfig host="124.71.40.86" id="33d0be77-c2f8-4f00-8541-f101f89252c4" keyPath="C:\Users\vaedu\.ssh\id_ed25519" port="22" nameFormat="DESCRIPTIVE" username="root" useOpenSSHConfig="false" />
     </configs>
   </component>
 </project>

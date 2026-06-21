@@ -2,6 +2,9 @@ package com.example.atm.mapper;
 
 import com.example.atm.entity.Account;
 import org.apache.ibatis.annotations.*;
+
+import java.math.BigDecimal;
+
 @Mapper
 public interface AccountMapper {
 
@@ -40,7 +43,7 @@ public interface AccountMapper {
         WHERE card = #{card}
     """)
     void updateBalance(@Param("card") String card,
-                       @Param("balance") double balance);
+                       @Param("balance") BigDecimal balance);
 
     @Update("""
         UPDATE account

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * 与数据库 account 表一一对应的实体类。
@@ -27,8 +28,8 @@ public class Account implements Serializable {
     // 数据库 sex 字段
     private String sex;
     // 数据库 limit 字段
-    private double dailyLimit;
-    private double balance;
+    private BigDecimal dailyLimit;
+    private BigDecimal balance;
     private String token;
 
 }

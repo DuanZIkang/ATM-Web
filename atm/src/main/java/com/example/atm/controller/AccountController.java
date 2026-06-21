@@ -26,7 +26,7 @@ public class AccountController {
 
 	@PostMapping("/login")
 	public Result login(@RequestBody Account req) {
-		// ✅ 返回 LoginResponse，不含密码
+		//  返回 LoginResponse，不含密码
 		LoginResponse resp = accountService.login(req.getCard(), req.getPassword());
 		return Result.ok(resp);
 	}
@@ -35,7 +35,7 @@ public class AccountController {
 	public Result info(@RequestParam String card) {
 		Account acc = accountService.getInfo(card);
 		if (acc == null) return Result.err("账号不存在");
-		acc.setPassword(null); // ✅ 查询信息时也不返回密码
+		acc.setPassword(null); //  查询信息时也不返回密码
 		return Result.ok(acc);
 	}
 

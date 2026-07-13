@@ -15,16 +15,17 @@
         <p><strong>每日限额：</strong><span id="limit"></span> 元</p>
 
         <div class="btn-group">
-          <button class="btn" @click="router.push('/deposit')">存款</button>
-          <button class="btn" @click="router.push('/withdraw')">取款</button>
-          <button class="btn" @click="router.push('/transfer')">转账</button>
-          <button class="btn" @click="router.push('/change-password')">修改密码</button>
+          <el-button class="btn" @click="router.push('/deposit')">存款</el-button>
+          <el-button class="btn" @click="router.push('/withdraw')">取款</el-button>
+          <el-button class="btn" @click="router.push('/transfer')">转账</el-button>
+          <el-button class="btn" @click="router.push('/change-password')">修改密码</el-button>
+          <el-button class="btn" @click="router.push('/transaction-records')">交易记录</el-button>
         </div>
       </div>
 
       <!-- 右侧交易记录 -->
       <div class="record-card">
-        <h2 class="title">最近交易记录（仅保留 10 条）</h2>
+        <h2 class="title">最近交易记录（最近 10 条）</h2>
         <div id="recordList" class="record-list"></div>
       </div>
 
@@ -36,13 +37,13 @@
 import "@/assets/styles/home.css"
 import NavBar from "@/components/NavBar.vue";
 import initHome from '@/assets/scripts/home.js';
-import { useRouter } from "vue-router";  // ✅ 改这里
+import { useRouter } from "vue-router";
 
 export default {
   components: { NavBar },
 
   setup() {
-    const router = useRouter();  // ✅ 拿到真正的 router 实例
+    const router = useRouter();
     return { router };
   },
 

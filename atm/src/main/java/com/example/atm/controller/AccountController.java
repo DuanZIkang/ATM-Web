@@ -85,8 +85,9 @@ public class AccountController {
 		return Result.ok("修改成功");
 	}
 
+
 	@GetMapping("/transactions")
 	public Result transactions(@RequestParam String card) {
-		return Result.ok(transactionService.getByCard(card));
+		return Result.ok(transactionService.getRecentTransactions(card));
 	}
 }

@@ -27,7 +27,6 @@ public class TransactionServiceImpl implements TransactionService {
         t.setRemark(remark);
         t.setTime(LocalDateTime.now());
         mapper.insert(t);
-        trimOld(card);
     }
 
     @Override
@@ -42,7 +41,6 @@ public class TransactionServiceImpl implements TransactionService {
         out.setToName(toName);
         out.setTime(LocalDateTime.now());
         mapper.insert(out);
-        trimOld(fromCard);
 
         // 转入记录：显示“来自：对方姓名”
         Transaction in = new Transaction();
@@ -53,16 +51,16 @@ public class TransactionServiceImpl implements TransactionService {
         in.setToName(fromName);
         in.setTime(LocalDateTime.now());
         mapper.insert(in);
-        trimOld(toCard);
     }
 
     @Override
-    public List<Transaction> getByCard(String card) {
+    public List<Transaction> getRecentTransactions(String card) {
         return mapper.findByCard(card);
     }
 
     @Override
-    public void trimOld(String card) {
-        mapper.trimOldRecords(card);
+    public List<Transaction> getAllTransactions(String card) {
+        return mapper.allTransactions(card);
     }
+
 }

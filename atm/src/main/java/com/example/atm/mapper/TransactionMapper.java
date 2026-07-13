@@ -14,13 +14,10 @@ public interface TransactionMapper {
 	void insert(Transaction t);
 
 	@Select("SELECT id, card, type, amount, remark, to_name AS toName, time " +
-			"FROM `transaction` WHERE card = #{card} ORDER BY time DESC LIMIT 50")
+			"FROM `transaction` WHERE card = #{card} ORDER BY time DESC LIMIT 10")
 	List<Transaction> findByCard(String card);
 
-	@Delete("DELETE FROM transaction WHERE card = #{card} AND id NOT IN (" +
-			"SELECT id FROM (" +
-			"    SELECT id FROM transaction WHERE card = #{card} ORDER BY time DESC LIMIT 10" +
-			") AS temp)")
-	void trimOldRecords(@Param("card") String card);
-
+	@Select("SELECT id, card, type, amount, remark, to_name AS toName, time FROM `transaction` WHERE card =#{card} " +
+			"ORDER BY time DESC")
+	List<Transaction> allTransactions(String card);
 }

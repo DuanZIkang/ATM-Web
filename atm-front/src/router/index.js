@@ -8,6 +8,7 @@ import Deposit from '../views/Deposit.vue'
 import Withdraw from '../views/Withdraw.vue'
 import Transfer from '../views/Transfer.vue'
 import ChangePassword from "@/views/ChangePassword.vue";
+import TransactionRecords from "@/views/TransactionRecords.vue";
 
 const routes = [
     {
@@ -55,6 +56,11 @@ const routes = [
         component: ChangePassword,
         meta: { title: "修改密码 " }
     },
+    {
+        path: '/transaction-records',
+        component: TransactionRecords,
+        meta: { title: "交易记录 " }
+    }
 ]
 
 const router = createRouter({
@@ -62,7 +68,7 @@ const router = createRouter({
     routes
 })
 
-// ⭐ 自动切换页面标题 ⭐
+// 自动切换页面标题
 router.beforeEach((to, from, next) => {
     if (to.meta.title) {
         document.title = to.meta.title

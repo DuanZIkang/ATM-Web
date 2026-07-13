@@ -57,6 +57,7 @@ async function doDeposit() {
 </script>
 
 <style scoped>
+@import "@/assets/styles/ChangePassword.css";
 .card-container {
   display: flex;
   justify-content: center;

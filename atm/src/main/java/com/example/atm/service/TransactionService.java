@@ -12,6 +12,8 @@ public interface TransactionService {
     // 新增：专用于转账（需要对方名字）
     void recordTransfer(String fromCard, String toCard, BigDecimal amount, String fromName, String toName);
 
-    void trimOld(String card);
-    List<Transaction> getByCard(String card);
+    List<Transaction> getRecentTransactions(String card);
+    
+    List<Transaction> getAllTransactions(String card);
+
 }

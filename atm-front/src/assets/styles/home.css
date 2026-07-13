@@ -51,6 +51,7 @@
     border: none !important;
     border-radius: 8px !important;
     margin-bottom: 12px !important;
+    margin-left: 0 !important;
     cursor: pointer !important;
     font-size: 15px !important;
     transition: .2s !important;

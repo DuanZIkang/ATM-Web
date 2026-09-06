@@ -114,6 +114,7 @@ public class AccountServiceImpl implements AccountService {
 		);
 	}
 
+	
 	@Override
 	public Account deposit(DepositRequest req) {
 		checkPositive(req.getAmount());
@@ -128,12 +129,13 @@ public class AccountServiceImpl implements AccountService {
 		return a;
 	}
 
+	
 	@Override
 	public Account withdraw(WithdrawRequest req) {
 		checkPositive(req.getAmount());
 		Account a = mapper.findByCard(req.getCard());
 		if (a == null) throw new AccountNotFoundException("账户不存在");
-		if (a.getBalance().compareTo(req.getAmount()) <0) throw new InsufficientBalanceException("余额不足");
+		if (a.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
 
 		BigDecimal newBalance = a.getBalance().subtract(req.getAmount());
 		mapper.updateBalance(req.getCard(), newBalance);
@@ -143,6 +145,7 @@ public class AccountServiceImpl implements AccountService {
 		return a;
 	}
 
+	
 	@Override
 	public Account transfer(TransferRequest req) {
 		checkPositive(req.getAmount());

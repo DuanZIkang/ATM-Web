@@ -9,6 +9,7 @@ import com.example.atm.entity.Account;
 import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.AllArgsConstructor;
+import jakarta.validation.Valid;  // ← 导入 Jakarta validation
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -40,21 +41,21 @@ public class AccountController {
 	}
 
 	@PostMapping("/deposit")
-	public Result deposit(@RequestBody DepositRequest req) {
+	public Result deposit(@Valid @RequestBody DepositRequest req) {  // ← 添加 @Valid
 		Account account = accountService.deposit(req);
 		account.setPassword(null);
 		return Result.ok(account);
 	}
 
 	@PostMapping("/withdraw")
-	public Result withdraw(@RequestBody WithdrawRequest req) {
+	public Result withdraw(@Valid @RequestBody WithdrawRequest req) {  // ← 添加 @Valid
 		Account account = accountService.withdraw(req);
 		account.setPassword(null);
 		return Result.ok(account);
 	}
 
 	@PostMapping("/transfer")
-	public Result transfer(@RequestBody TransferRequest req) {
+	public Result transfer(@Valid @RequestBody TransferRequest req) {  // ← 添加 @Valid
 		Account transfer = accountService.transfer(req);
 
 		Account from = accountService.getInfo(req.getFromCard());

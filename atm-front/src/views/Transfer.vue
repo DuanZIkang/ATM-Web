@@ -6,12 +6,21 @@
       <div class="card">
         <h2>转账</h2>
 
-        <input v-model="toCard" class="input" placeholder="对方卡号" />
-        <input v-model="amount" class="input" placeholder="金额" />
+        <input 
+          v-model="toCard" 
+          class="input" 
+          placeholder="目标卡号"
+        />
+        <input 
+          v-model="amount" 
+          class="input" 
+          placeholder="请输入金额"
+        />
+        <p v-if="amountError" style="color: red; font-size: 14px;">{{ amountError }}</p>
 
-        <button class="btn" @click="doTransfer">确认转账</button>
+        <button class="btn" @click="doTransfer" :disabled="!!amountError || !amount || !toCard">确认转账</button>
         <button class="btn secondary" @click="$router.push('/home')">返回</button>
-        <p>{{ msg }}</p>
+        <p v-if="msg">{{ msg }}</p>
       </div>
     </div>
   </div>
@@ -29,7 +38,25 @@ const msg = ref("");
 const router = useRouter();
 
 async function doTransfer() {
-  // ✅ 从 userInfo 读取 card
+const amountError = ref("");
+
+const computedAmountError = computed(() => {
+  if (!amount.value) return "";
+  const num = Number(amount.value);
+  if (isNaN(num)) return "金额格式错误：仅允许输入纯数字";
+  if (num <= 0) return "金额必须大于0";
+  if (!/^\d+(\.\d{1,2})?$/.test(amount.value)) return "金额最多可包含两位小数";
+  return "";
+});
+
+watch(computedAmountError, (newVal) => {
+  amountError.value = newVal;
+});
+  
+  if (!toCard.value) {
+    msg.value = "请输入目标卡号";
+    return;
+  }
   const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
   if (!userInfo) {
     router.push("/login");
@@ -42,10 +69,17 @@ async function doTransfer() {
   }
 
   try {
+    const amountValue = parseFloat(amount.value);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      msg.value = "金额格式错误";
+      return;
+    }
+
     const res = await axios.post(`${import.meta.env.VITE_API_URL}/transfer`, {
       fromCard: userInfo.card,
       toCard: toCard.value,
-      amount: Number(amount.value)
+      amount: amountValue,
+      password: ""
     }, {
       headers: { token: sessionStorage.getItem("token") }
     });

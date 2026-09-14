@@ -58,8 +58,8 @@ public class GlobalExceptionHandler {
     /**
      * 处理账户异常
      */
-    @ExceptionHandler(AccpuntException.class)
-    public Result handleAccountException(AccpuntException ex) {
+    @ExceptionHandler(AccountException.class)
+    public Result handleAccountException(AccountException ex) {
         log.warn("账户异常: {}", ex.getMessage());
         return Result.err(ex.getMessage());
     }

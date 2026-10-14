@@ -3,6 +3,7 @@
   <component name="AdditionalModuleElements">
     <content url="file://$MODULE_DIR$/../../atm" dumb="true">
       <excludeFolder url="file://$MODULE_DIR$/../../atm/.idea" />
+      <excludeFolder url="file://$MODULE_DIR$/../../atm/logs" />
     </content>
   </component>
 </module>

@@ -5,6 +5,12 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
       <excludeFolder url="file://$MODULE_DIR$/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/.codebase" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/agent-team" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/agents" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/mcp" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/rule" />
+      <excludeFolder url="file://$MODULE_DIR$/.codeartsdoer/skills" />
     </content>
     <orderEntry type="jdk" jdkName="temurin-17" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />

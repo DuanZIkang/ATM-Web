@@ -42,4 +42,4 @@ out/
 # 忽略 Gradle 打包生成的临时文件
 /build/
 .gradle/
-src/main/resources/application-dev.yaml
+src/main/resources/application-dev.yml

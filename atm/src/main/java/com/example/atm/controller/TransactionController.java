@@ -1,5 +1,6 @@
 package com.example.atm.controller;
 
+import com.example.atm.Utils.CurrentUser;
 import com.example.atm.entity.Transaction;
 
 import com.example.atm.service.TransactionService;
@@ -12,15 +13,18 @@ import java.util.List;
 @RequestMapping("/api/transactions")
 @AllArgsConstructor
 public class TransactionController {
-    private final TransactionService service;
+	private final TransactionService service;
 
 
-    @GetMapping("/list")
-    public List<Transaction> list(@RequestParam String card) {
-        return service.getRecentTransactions(card);
-    }
-    @GetMapping("/all")
-    public List<Transaction> getAllTransactions(@RequestParam String card) {
-        return service.getAllTransactions(card);
-    }
+	@GetMapping("/list")
+	public List<Transaction> list(@RequestParam String card) {
+		CurrentUser.assertSelf(card);
+		return service.getRecentTransactions(card);
+	}
+
+	@GetMapping("/all")
+	public List<Transaction> getAllTransactions(@RequestParam String card) {
+		CurrentUser.assertSelf(card);
+		return service.getAllTransactions(card);
+	}
 }

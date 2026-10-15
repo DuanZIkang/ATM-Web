@@ -1,5 +1,6 @@
 package com.example.atm.controller;
 
+import com.example.atm.Utils.CurrentUser;
 import com.example.atm.common.Result;
 import com.example.atm.dto.DepositRequest;
 import com.example.atm.dto.LoginResponse;
@@ -34,6 +35,7 @@ public class AccountController {
 
 	@GetMapping("/info")
 	public Result info(@RequestParam String card) {
+		CurrentUser.assertSelf(card);
 		Account acc = accountService.getInfo(card);
 		if (acc == null) return Result.err("账号不存在");
 		acc.setPassword(null); //  查询信息时也不返回密码
@@ -42,6 +44,7 @@ public class AccountController {
 
 	@PostMapping("/deposit")
 	public Result deposit(@Valid @RequestBody DepositRequest req) {  // ← 添加 @Valid
+		CurrentUser.assertSelf(req.getCard());
 		Account account = accountService.deposit(req);
 		account.setPassword(null);
 		return Result.ok(account);
@@ -49,6 +52,7 @@ public class AccountController {
 
 	@PostMapping("/withdraw")
 	public Result withdraw(@Valid @RequestBody WithdrawRequest req) {  // ← 添加 @Valid
+		CurrentUser.assertSelf(req.getCard());
 		Account account = accountService.withdraw(req);
 		account.setPassword(null);
 		return Result.ok(account);
@@ -56,6 +60,7 @@ public class AccountController {
 
 	@PostMapping("/transfer")
 	public Result transfer(@Valid @RequestBody TransferRequest req) {  // ← 添加 @Valid
+		CurrentUser.assertSelf(req.getFromCard());
 		Account transfer = accountService.transfer(req);
 
 		Account from = accountService.getInfo(req.getFromCard());
@@ -80,7 +85,7 @@ public class AccountController {
 		String card = req.get("card");
 		String oldPwd = req.get("oldPwd");
 		String newPwd = req.get("newPwd");
-
+		CurrentUser.assertSelf(card);
 		boolean ok = accountService.changePassword(card, oldPwd, newPwd);
 		if (!ok) return Result.err("修改失败");
 		return Result.ok("修改成功");
@@ -89,6 +94,7 @@ public class AccountController {
 
 	@GetMapping("/transactions")
 	public Result transactions(@RequestParam String card) {
+		CurrentUser.assertSelf(card);
 		return Result.ok(transactionService.getRecentTransactions(card));
 	}
 }

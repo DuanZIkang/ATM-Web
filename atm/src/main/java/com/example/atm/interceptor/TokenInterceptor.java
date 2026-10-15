@@ -1,7 +1,9 @@
 package com.example.atm.interceptor;
 
 
+import com.example.atm.Utils.CurrentUser;
 import com.example.atm.Utils.JwtUtils;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+
+
+import java.io.IOException;
 
 @Slf4j
 @Component
@@ -22,28 +27,28 @@ public class TokenInterceptor implements HandlerInterceptor {
 	 * @return 如果请求被允许继续处理则返回true，否则返回false
 	 */
 	@Override
-	public boolean preHandle(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler){
+	public boolean preHandle(HttpServletRequest request, @NonNull HttpServletResponse response,
+	                         @NonNull Object handler) throws IOException {
+		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;   // 跨域预检不带 token
 
-		// 从请求头中提取令牌
 		String token = request.getHeader("token");
 		if (token == null || token.isEmpty()) {
-			// 如果令牌为空，记录事件并返回未授权状态
-			log.info("令牌为空，用户未登录");
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			return false;
+			return reject(response, "未登录");
 		}
 		try {
-			// 解析并验证令牌
-			JwtUtils.parseToken(token);
+			Claims claims = JwtUtils.parseToken(token);
+			request.setAttribute(CurrentUser.ATTR, claims.get("card", String.class));  // 后面比对要用
 		} catch (JwtException e) {
-			// 如果令牌无效，记录事件并返回未授权状态
-			log.info("令牌校验失败");
-			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-			return false;
+			return reject(response, "登录已失效，请重新登录");
 		}
-		// 如果令牌有效，记录事件并允许请求继续
-		log.info("令牌合法，放行");
 		return true;
+	}
+
+	private boolean reject(HttpServletResponse response, String msg) throws IOException {
+		response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+		response.setContentType("application/json;charset=UTF-8");
+		response.getWriter().write("{\"success\":false,\"message\":\"" + msg + "\"}");
+		return false;
 	}
 
 }

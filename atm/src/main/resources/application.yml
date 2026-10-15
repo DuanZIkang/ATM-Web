@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: atm
+  profiles:
+     active: dev
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+server:
+  port: 8090

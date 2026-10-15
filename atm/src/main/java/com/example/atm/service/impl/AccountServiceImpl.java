@@ -166,10 +166,8 @@ public class AccountServiceImpl implements AccountService {
 	//  修改密码：AES 解密 → BCrypt 比对旧密码 → BCrypt 加密新密码存库
 	@Override
 	public boolean changePassword(String card, String oldPwd, String newPwd) {
-		if ((oldPwd == null || !oldPwd.matches("\\d{6}")) && (newPwd == null || !newPwd.matches("\\d{6}")))
-			throw new DataFormatException("密码格式错误");
 		Account a = mapper.findByCard(card);
-		if (a == null) throw new RuntimeException("用户不存在");
+		if (a == null) throw new AccountNotFoundException("用户不存在");
 
 		String decryptedOld;
 		String decryptedNew;
@@ -177,15 +175,20 @@ public class AccountServiceImpl implements AccountService {
 			decryptedOld = PasswordUtils.decryptPassword(oldPwd, aesKey);
 			decryptedNew = PasswordUtils.decryptPassword(newPwd, aesKey);
 		} catch (Exception e) {
+			log.error("修改密码时解密失败: {}", e.getMessage());
 			throw new CryptoServiceException("服务器内部错误");
 		}
 
-		//  BCrypt 比对旧密码
-		if (!bcrypt.matches(decryptedOld, a.getPassword())) {
-			throw new RuntimeException("旧密码错误");
+		// 校验的是解密后的明文：新密码必须是 6 位纯数字
+		if (!decryptedNew.matches("\\d{6}")) {
+			throw new DataFormatException("新密码必须为6位数字");
 		}
 
-		//  新密码 BCrypt 加密后存库
+		// 旧密码只需要和库里的 BCrypt 哈希比对，不用再校验格式
+		if (!bcrypt.matches(decryptedOld, a.getPassword())) {
+			throw new PasswordComparisonException("旧密码错误");
+		}
+
 		mapper.updatePassword(card, bcrypt.encode(decryptedNew));
 		return true;
 	}

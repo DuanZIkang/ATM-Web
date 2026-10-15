@@ -8,12 +8,12 @@
 
         <input 
           v-model="toCard" 
-          class="input" 
+          class="input"
           placeholder="目标卡号"
         />
         <input 
           v-model="amount" 
-          class="input" 
+          class="input"
           placeholder="请输入金额"
         />
         <p v-if="amountError" style="color: red; font-size: 14px;">{{ amountError }}</p>
@@ -29,8 +29,8 @@
 <script setup>
 import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import {computed, ref, watch} from "vue";
+import {createRouter as $router, useRouter} from "vue-router";
 
 const toCard = ref("");
 const amount = ref("");
@@ -49,9 +49,9 @@ const computedAmountError = computed(() => {
   return "";
 });
 
-watch(computedAmountError, (newVal) => {
-  amountError.value = newVal;
-});
+  watch(computedAmountError, (newVal) => {
+    amountError.value = newVal;
+  });
   
   if (!toCard.value) {
     msg.value = "请输入目标卡号";
@@ -59,7 +59,7 @@ watch(computedAmountError, (newVal) => {
   }
   const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
   if (!userInfo) {
-    router.push("/login");
+    await router.push("/login");
     return;
   }
 
@@ -89,7 +89,7 @@ watch(computedAmountError, (newVal) => {
       userInfo.balance = res.data.data.balance;
       sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
       msg.value = `转账成功，当前余额：${userInfo.balance} 元`;
-      router.push("/home");
+      await router.push("/home");
     } else {
       msg.value = res.data.message || "转账失败";
     }

@@ -1,13 +1,15 @@
 <template>
   <div class="page">
-    <NavBar />
+    <NavBar/>
 
     <div class="card-container">
       <div class="card">
         <h2>修改密码</h2>
 
-        <input v-model="oldPwd" class="input" placeholder="旧密码" />
-        <input v-model="newPwd" class="input" placeholder="新密码" />
+        <input v-model="oldPwd" class="input" type="password"
+               placeholder="旧密码"/>
+        <input v-model="newPwd" class="input" type="password"
+               placeholder="新密码"/>
 
         <button class="btn" @click="changePwd">确认修改</button>
         <button class="btn secondary" @click="$router.push('/home')">返回</button>
@@ -20,9 +22,9 @@
 <script setup>
 import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import { encryptPassword } from "@/assets/scripts/encryption";
+import {ref} from "vue";
+import {createRouter as $router, useRouter} from "vue-router";
+import {encryptPassword} from "@/assets/scripts/encryption";
 
 const oldPwd = ref("");
 const newPwd = ref("");
@@ -44,12 +46,12 @@ async function changePwd() {
       oldPwd: encryptPassword(oldPwd.value),
       newPwd: encryptPassword(newPwd.value)
     }, {
-      headers: { token: sessionStorage.getItem("token") }
+      headers: {token: sessionStorage.getItem("token")}
     });
 
     if (res.data.success) {
       msg.value = "修改成功";
-      router.push("/home");
+      await router.push("/home");
     } else {
       msg.value = res.data.message || "修改失败";
     }

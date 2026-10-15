@@ -23,7 +23,7 @@
 import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
 import {ref} from "vue";
-import {createRouter as $router, useRouter} from "vue-router";
+import {useRouter} from "vue-router";
 import {encryptPassword} from "@/assets/scripts/encryption";
 
 const oldPwd = ref("");

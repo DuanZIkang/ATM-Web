@@ -3,7 +3,6 @@
     <div class="left" @click="$router.push('/home')">🏦 ATM 系统</div>
 
     <div class="right">
-      <span v-if="account">卡号：{{ account.card }}</span>
       <button class="logout" @click="logout">退出</button>
     </div>
   </nav>
@@ -11,15 +10,10 @@
 
 <script>
 export default {
-  computed:{
-    account(){
-      const a = sessionStorage.getItem("account");
-      return a ? JSON.parse(a) : null;
-    }
-  },
+
   methods:{
     logout(){
-      sessionStorage.removeItem("account");
+      sessionStorage.clear();
       this.$router.push("/");
     }
   }

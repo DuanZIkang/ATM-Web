@@ -29,18 +29,16 @@
 <script setup>
 import NavBar from "@/components/NavBar.vue";
 import axios from "axios";
-import {computed, ref, watch} from "vue";
-import {createRouter as $router, useRouter} from "vue-router";
+import { computed, ref } from "vue";
+import { useRouter } from "vue-router";
 
 const toCard = ref("");
 const amount = ref("");
 const msg = ref("");
 const router = useRouter();
 
-async function doTransfer() {
-const amountError = ref("");
-
-const computedAmountError = computed(() => {
+// 金额校验放在函数外面，模板里的 amountError 才能读到
+const amountError = computed(() => {
   if (!amount.value) return "";
   const num = Number(amount.value);
   if (isNaN(num)) return "金额格式错误：仅允许输入纯数字";
@@ -49,43 +47,32 @@ const computedAmountError = computed(() => {
   return "";
 });
 
-  watch(computedAmountError, (newVal) => {
-    amountError.value = newVal;
-  });
-  
-  if (!toCard.value) {
-    msg.value = "请输入目标卡号";
+async function doTransfer() {
+  if (amountError.value) {
+    msg.value = amountError.value;
     return;
   }
+  if (!toCard.value || !amount.value) {
+    msg.value = "请输入对方卡号和转账金额";
+    return;
+  }
+
   const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
   if (!userInfo) {
     await router.push("/login");
     return;
   }
 
-  if (!toCard.value || !amount.value) {
-    msg.value = "请输入对方卡号和转账金额";
-    return;
-  }
-
   try {
-    const amountValue = parseFloat(amount.value);
-    if (isNaN(amountValue) || amountValue <= 0) {
-      msg.value = "金额格式错误";
-      return;
-    }
-
     const res = await axios.post(`${import.meta.env.VITE_API_URL}/transfer`, {
       fromCard: userInfo.card,
       toCard: toCard.value,
-      amount: amountValue,
-      password: ""
+      amount: parseFloat(amount.value)
     }, {
       headers: { token: sessionStorage.getItem("token") }
     });
 
     if (res.data.success) {
-      // ✅ 更新 userInfo 里的余额
       userInfo.balance = res.data.data.balance;
       sessionStorage.setItem("userInfo", JSON.stringify(userInfo));
       msg.value = `转账成功，当前余额：${userInfo.balance} 元`;
@@ -94,7 +81,7 @@ const computedAmountError = computed(() => {
       msg.value = res.data.message || "转账失败";
     }
   } catch (e) {
-    msg.value = "服务器错误或余额不足";
+    msg.value = e.response?.data?.message || "服务器错误";
   }
 }
 </script>

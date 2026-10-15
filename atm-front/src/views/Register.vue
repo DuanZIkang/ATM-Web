@@ -87,9 +87,6 @@ export default {
             `请妥善保管，登录时需要使用此卡号。\n点击确定进入首页。`
         );
 
-        // 必须保存到 localStorage，否则首页无法加载数据
-        sessionStorage.setItem("account", JSON.stringify(acc));
-
         this.$router.push("/home");
 
       } catch (e) {

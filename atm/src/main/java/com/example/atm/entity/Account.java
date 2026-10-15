@@ -1,5 +1,6 @@
 package com.example.atm.entity;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,9 +22,10 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Account implements Serializable {
-
+    @NotNull(message = "卡号不能为空")
     private String card;
     private String name;
+    @NotNull(message = "密码不能为空")
     private String password;
     // 数据库 sex 字段
     private String sex;

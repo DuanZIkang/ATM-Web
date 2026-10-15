@@ -3,9 +3,11 @@ package com.example.atm.common.exception;
 import com.example.atm.common.Result;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Objects;
@@ -71,6 +73,16 @@ public class GlobalExceptionHandler {
     public Result handleException(Exception ex) {
         log.error("服务器错误: ", ex);
         return Result.err("服务器内部错误");
+    }
+
+    /**
+     *处理后端未登录越权异常
+     */
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    @ExceptionHandler(ForbiddenException.class)
+    public Result handleForbidden(ForbiddenException ex) {
+        log.warn("越权访问: {}", ex.getMessage());
+        return Result.err(ex.getMessage());
     }
 
 }

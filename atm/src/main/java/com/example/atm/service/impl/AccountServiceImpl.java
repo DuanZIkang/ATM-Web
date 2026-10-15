@@ -9,6 +9,7 @@ import com.example.atm.dto.TransferRequest;
 import com.example.atm.dto.WithdrawRequest;
 import com.example.atm.entity.Account;
 import com.example.atm.mapper.AccountMapper;
+import com.example.atm.mapper.TransactionMapper;
 import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -28,7 +30,8 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
 
-	private final AccountMapper mapper;
+	private final AccountMapper AccountMapper;
+	private final TransactionMapper TransactionMapper;
 	private final TransactionService transactionService;
 
 	@Value("${atm.aes-key}")
@@ -64,13 +67,13 @@ public class AccountServiceImpl implements AccountService {
 			do {
 				card = generateCard();
 			}
-			while (mapper.findByCard(card) != null);
+			while (AccountMapper.findByCard(card) != null);
 			account.setCard(card);
 		}
 
-		mapper.insert(account);
+		AccountMapper.insert(account);
 
-		Account saved = mapper.findByCard(account.getCard());
+		Account saved = AccountMapper.findByCard(account.getCard());
 		saved.setPassword(null); //  注册成功不返回 hash
 		return saved;
 	}
@@ -78,8 +81,8 @@ public class AccountServiceImpl implements AccountService {
 	//  登录：AES 解密 → BCrypt 比对 → 返回 LoginResponse（无密码）
 	@Override
 	public LoginResponse login(String card, String password) {
-		Account account = mapper.login(card);
-		if (account == null) throw new RuntimeException("卡号不存在");
+		Account account = AccountMapper.login(card);
+		if (account == null) throw new AccountNotFoundException("卡号不存在");
 		log.info("aesKey长度: {}, 值: '{}'", aesKey.getBytes(StandardCharsets.UTF_8).length, aesKey);
 		String decryptedPassword;
 		try {
@@ -114,50 +117,52 @@ public class AccountServiceImpl implements AccountService {
 		);
 	}
 
-	
+
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public Account deposit(DepositRequest req) {
 		checkPositive(req.getAmount());
-		Account a = mapper.findByCard(req.getCard());
+		Account a = AccountMapper.findByCard(req.getCard());
 		if (a == null) throw new AccountNotFoundException("账户不存在");
 
 		BigDecimal newBalance = a.getBalance().add(req.getAmount());
-		mapper.updateBalance(req.getCard(), newBalance);
+		AccountMapper.updateBalance(req.getCard(), newBalance);
 		transactionService.record(req.getCard(), "DEPOSIT", req.getAmount(), "存款");
 
 		a.setBalance(newBalance);
 		return a;
 	}
 
-	
+
 	@Override
 	public Account withdraw(WithdrawRequest req) {
 		checkPositive(req.getAmount());
-		Account a = mapper.findByCard(req.getCard());
+		Account a = AccountMapper.findByCard(req.getCard());
 		if (a == null) throw new AccountNotFoundException("账户不存在");
 		if (a.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
-
+		checkDailyLimit(a, req.getAmount());
 		BigDecimal newBalance = a.getBalance().subtract(req.getAmount());
-		mapper.updateBalance(req.getCard(), newBalance);
+		AccountMapper.updateBalance(req.getCard(), newBalance);
 		transactionService.record(req.getCard(), "WITHDRAW", req.getAmount(), "取款");
 
 		a.setBalance(newBalance);
 		return a;
 	}
 
-	
+
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public Account transfer(TransferRequest req) {
 		checkPositive(req.getAmount());
-		Account from = mapper.findByCard(req.getFromCard());
-		Account to = mapper.findByCard(req.getToCard());
+		Account from = AccountMapper.findByCard(req.getFromCard());
+		Account to = AccountMapper.findByCard(req.getToCard());
 		if (from == null || to == null) throw new AccountNotFoundException("账户不存在");
 		if (!(from.getBalance().compareTo(req.getAmount()) > 0)) throw new InsufficientBalanceException("余额不足");
-
+		checkDailyLimit(from, req.getAmount());
 		BigDecimal fromNew = from.getBalance().subtract(req.getAmount());
 		BigDecimal toNew = to.getBalance().add(req.getAmount());
-		mapper.updateBalance(req.getFromCard(), fromNew);
-		mapper.updateBalance(req.getToCard(), toNew);
+		AccountMapper.updateBalance(req.getFromCard(), fromNew);
+		AccountMapper.updateBalance(req.getToCard(), toNew);
 
 		from.setBalance(fromNew);
 		return from;
@@ -166,7 +171,7 @@ public class AccountServiceImpl implements AccountService {
 	//  修改密码：AES 解密 → BCrypt 比对旧密码 → BCrypt 加密新密码存库
 	@Override
 	public boolean changePassword(String card, String oldPwd, String newPwd) {
-		Account a = mapper.findByCard(card);
+		Account a = AccountMapper.findByCard(card);
 		if (a == null) throw new AccountNotFoundException("用户不存在");
 
 		String decryptedOld;
@@ -189,18 +194,40 @@ public class AccountServiceImpl implements AccountService {
 			throw new PasswordComparisonException("旧密码错误");
 		}
 
-		mapper.updatePassword(card, bcrypt.encode(decryptedNew));
+		AccountMapper.updatePassword(card, bcrypt.encode(decryptedNew));
 		return true;
 	}
 
 	@Override
 	public Account getInfo(String card) {
-		return mapper.findByCard(card);
+		return AccountMapper.findByCard(card);
 	}
 
 	private void checkPositive(BigDecimal amount) {
 		if (!(amount.compareTo(BigDecimal.ZERO) > 0)) {
 			throw new DataFormatException("金额不能为负数！");
+		}
+	}
+
+	/**
+	 * 根据卡号获取今日已支出
+	 * @param card 卡号
+	 * @return 今日支出金额
+	 */
+	private BigDecimal getTodayOutflow(String card) {
+		return TransactionMapper.sumTodayOutflow(card);
+	}
+
+	/**
+	 * 判断本次支出是否超过限额
+	 * @param account 用户信息
+	 * @param amount 需要支出的金额
+	 */
+	private void checkDailyLimit(Account account, BigDecimal amount) {
+		BigDecimal used = getTodayOutflow(account.getCard());
+		if (used.add(amount).compareTo(account.getDailyLimit()) > 0) {
+			throw new DailyLimitExceededException(
+					"超过每日限额：限额 " + account.getDailyLimit() + " 元，今日已支出 " + used + " 元");
 		}
 	}
 }

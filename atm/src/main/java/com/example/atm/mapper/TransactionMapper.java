@@ -3,6 +3,7 @@ package com.example.atm.mapper;
 import com.example.atm.entity.Transaction;
 import org.apache.ibatis.annotations.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Mapper
@@ -20,4 +21,10 @@ public interface TransactionMapper {
 	@Select("SELECT id, card, type, amount, remark, to_name AS toName, time FROM `transaction` WHERE card =#{card} " +
 			"ORDER BY time DESC")
 	List<Transaction> allTransactions(String card);
+	@Select("SELECT COALESCE(ROUND(SUM(amount), 2), 0)" +
+			"FROM `transaction`" +
+			"WHERE card = #{card}" +
+			"  AND type IN ('WITHDRAW', 'TRANSFER_OUT')" +
+			"  AND time >= CURDATE();")
+	BigDecimal sumTodayOutflow(String card);
 }

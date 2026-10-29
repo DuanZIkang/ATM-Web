@@ -12,31 +12,40 @@
           rel="noreferrer"
           class="beian-link"
       >
-        粤ICP备2025503821号-1
+        {{ site.icp }}
       </a>
 
-      <span class="separator">|</span>
+      <template v-if="site.police">
+        <span class="separator">|</span>
 
-      <!-- 公安备案 + 小警徽图标 -->
-      <a
-          href="https://beian.mps.gov.cn/#/query/webSearch?code=44030002009173"
-          target="_blank"
-          rel="noreferrer"
-          class="beian-link police-link"
-      >
-        <img
-            src="../assets/icon/备案图标.png"
-            alt="公安备案图标"
-            class="police-icon"
-        />
-        粤公网安备44030002009173号
-      </a>
+        <!-- 公安备案 + 小警徽图标 -->
+        <a
+            :href="`https://beian.mps.gov.cn/#/query/webSearch?code=${site.police.code}`"
+            target="_blank"
+            rel="noreferrer"
+            class="beian-link police-link"
+        >
+          <img
+              src="../assets/icon/备案图标.png"
+              alt="公安备案图标"
+              class="police-icon"
+          />
+          粤公网安备{{ site.police.code }}号
+        </a>
+      </template>
     </div>
   </footer>
 </template>
 
-<script setup lang="ts">
-// 可以留空，或者加一些动态备案号的逻辑
+<script setup>
+// 按访问的域名显示对应的备案号。
+// vaedu.top 的公安备案通过后，把 police 改成 { code: '新的公安备案编号' } 即可。
+const SITES = {
+  top: { icp: '粤ICP备2025503821号', police: { code:'44030002018775'} },
+  me:  { icp: '粤ICP备2025503821号', police: { code: '44030002009173' } },
+}
+const host = window.location.hostname
+const site = host.endsWith('vaedu.top') ? SITES.top : SITES.me
 </script>
 
 <style scoped>

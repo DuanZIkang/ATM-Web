@@ -1,7 +1,6 @@
 package com.example.atm.common.exception;
 
 import com.example.atm.common.Result;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -23,12 +22,10 @@ public class GlobalExceptionHandler {
     public Result handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         log.error("JSON 反序列化失败: {}", ex.getMessage(), ex);
 
+        // 不依赖具体的 Jackson 异常类（Jackson 2/3 的类名和包名不同），只看错误信息
         Throwable cause = ex.getCause();
-        if (cause instanceof JsonMappingException) {
-            String message = cause.getMessage();
-            if (message.contains("BigDecimal")) {
-                return Result.err("金额格式错误：仅允许输入纯数字");
-            }
+        if (cause != null && cause.getMessage() != null && cause.getMessage().contains("BigDecimal")) {
+            return Result.err("金额格式错误：仅允许输入纯数字");
         }
 
         return Result.err("请求数据格式错误");

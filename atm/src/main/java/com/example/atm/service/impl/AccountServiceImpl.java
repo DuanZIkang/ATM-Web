@@ -15,15 +15,18 @@ import com.example.atm.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import static com.example.atm.Utils.RedisConstants.FAIL_KEY;
+import static com.example.atm.Utils.RedisConstants.LOCK_KEY;
 
 @Slf4j
 @Service
@@ -33,7 +36,7 @@ public class AccountServiceImpl implements AccountService {
 	private final AccountMapper AccountMapper;
 	private final TransactionMapper TransactionMapper;
 	private final TransactionService transactionService;
-
+	private final StringRedisTemplate stringRedisTemplate;
 	@Value("${atm.aes-key}")
 	private String aesKey;
 	//  BCrypt 实例
@@ -80,14 +83,17 @@ public class AccountServiceImpl implements AccountService {
 
 	//  登录：AES 解密 → BCrypt 比对 → 返回 LoginResponse（无密码）
 	@Override
-	public LoginResponse login(String card, String password) {
+	public LoginResponse login(String card, String password)  {
+		checkLocked(card);
 		Account account = AccountMapper.login(card);
-		if (account == null) throw new AccountNotFoundException("卡号不存在");
-		log.info("aesKey长度: {}, 值: '{}'", aesKey.getBytes(StandardCharsets.UTF_8).length, aesKey);
+		if (account == null) {
+			log.error("卡号不存在");
+			loginFail(card);
+			throw new AccountNotFoundException("卡号或密码错误");
+		}
 		String decryptedPassword;
 		try {
 			decryptedPassword = PasswordUtils.decryptPassword(password, aesKey);
-
 		} catch (IllegalArgumentException iae) {
 			log.error("加密配置错误: {}", iae.getMessage());
 			throw new CryptoServiceException("服务器错误");
@@ -98,6 +104,7 @@ public class AccountServiceImpl implements AccountService {
 
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
+			loginFail(card);
 			throw new PasswordComparisonException("密码错误");
 		}
 
@@ -173,7 +180,6 @@ public class AccountServiceImpl implements AccountService {
 	public boolean changePassword(String card, String oldPwd, String newPwd) {
 		Account a = AccountMapper.findByCard(card);
 		if (a == null) throw new AccountNotFoundException("用户不存在");
-
 		String decryptedOld;
 		String decryptedNew;
 		try {
@@ -211,6 +217,7 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * 根据卡号获取今日已支出
+	 *
 	 * @param card 卡号
 	 * @return 今日支出金额
 	 */
@@ -220,8 +227,9 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * 判断本次支出是否超过限额
+	 *
 	 * @param account 用户信息
-	 * @param amount 需要支出的金额
+	 * @param amount  需要支出的金额
 	 */
 	private void checkDailyLimit(Account account, BigDecimal amount) {
 		BigDecimal used = getTodayOutflow(account.getCard());
@@ -229,5 +237,69 @@ public class AccountServiceImpl implements AccountService {
 			throw new DailyLimitExceededException(
 					"超过每日限额：限额 " + account.getDailyLimit() + " 元，今日已支出 " + used + " 元");
 		}
+	}
+
+	/**
+	 * 对失败的卡号进行失败计数，并在失败次数达到一定程度后进行阶段锁定
+	 * @param card 卡号
+	 */
+	private void loginFail(String card) {
+		String failKey = FAIL_KEY + card;
+		// 使用原子操作递增计数（线程安全）
+		Long failCount = stringRedisTemplate.opsForValue().increment(failKey, 1);
+		// 首次失败时设置过期时间（24小时后自动重置）
+		if (failCount != null && failCount == 1) {
+			stringRedisTemplate.expire(failKey, Duration.ofDays(1));
+		}
+		// 判断是否需要锁定账户
+		if (failCount != null && failCount >= 5) {
+			lockAccount(card, failCount);
+		}
+	}
+
+	/**
+	 * 根据失败次数进行阶段锁定
+	 * @param card 卡号
+	 * @param failCount 失败次数
+	 */
+	private void lockAccount(String card, Long failCount)  {
+		String lockKey = LOCK_KEY + card;
+		if (failCount == 5){
+			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofMinutes(15));
+			throw new AccountLockedException("账户已锁定，请15分钟后重试");
+		} else if (failCount == 10) {
+			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofMinutes(30));
+			throw new AccountLockedException("账户已锁定，请30分钟后重试");
+		}else if (failCount == 15){
+			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofHours(1));
+			throw new AccountLockedException("账户已锁定，请1小时后重试");
+		}else if (failCount == 20){
+			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofDays(1));
+			throw new AccountLockedException("账户已锁定，请1天后重试");
+		}
+	}
+
+	/**
+	 * 登陆时调用，检查账户是否被锁定
+	 * 被锁定后，提示尝试次数过多，需要等待一段时间才能再次尝试
+	 *
+	 * @param card 要检查锁定状态的卡号
+	 */
+	private void checkLocked(String card) {
+		// getExpire 返回：>0 剩余秒数；-2 key 不存在；-1 存在但无过期时间
+		Long sec = stringRedisTemplate.getExpire(LOCK_KEY + card);
+		if (sec != null && sec > 0) {
+			throw new AccountLockedException("尝试次数过多，请 " + formatWait(sec) + " 后再试");
+		}
+	}
+
+	/**
+	 * 格式化等待时间
+	 * @param seconds 剩余秒数
+	 * @return 格式化后的等待时间
+	 */
+	private String formatWait(long seconds) {
+		long minutes = (seconds + 59) / 60;          // 向上取整
+		return minutes >= 60 ? (minutes / 60) + " 小时" : minutes + " 分钟";
 	}
 }

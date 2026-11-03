@@ -5,7 +5,7 @@ import com.example.atm.entity.Account;
 
 public interface AccountService {
 
-    LoginResponse login(String card, String password);
+    LoginResponse login(String card, String password) ;
 
     Account register(Account account);
 

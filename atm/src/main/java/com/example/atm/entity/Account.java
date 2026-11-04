@@ -32,6 +32,7 @@ public class Account implements Serializable {
     // 数据库 limit 字段
     private BigDecimal dailyLimit;
     private BigDecimal balance;
+    private String status;
     private String token;
 
 }

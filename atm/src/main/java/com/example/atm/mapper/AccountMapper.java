@@ -25,7 +25,8 @@ public interface AccountMapper {
                password,
                balance,
                daily_limit AS dailyLimit,
-               sex
+               sex,
+               status
         FROM account
         WHERE card = #{card}
     """)
@@ -52,5 +53,10 @@ public interface AccountMapper {
     """)
     void updatePassword(@Param("card") String card,
                         @Param("newPwd") String newPwd);
-
+    @Update("""
+        UPDATE account
+        SET status = 'LOCKED'
+        WHERE card = #{card}
+    """)
+    void lockAccount(String card);
 }

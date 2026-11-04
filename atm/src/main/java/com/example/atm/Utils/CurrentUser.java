@@ -9,7 +9,7 @@ public final class CurrentUser {
 	private CurrentUser() {}
 
 	/** 当前登录用户的卡号（来自 token，不是客户端传的） */
-	public static String card() {
+	private static String card() {
 		var attrs = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
 		Object c = attrs.getRequest().getAttribute(ATTR);
 		return c == null ? null : c.toString();

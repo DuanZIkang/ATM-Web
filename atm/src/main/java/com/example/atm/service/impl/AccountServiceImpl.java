@@ -91,6 +91,9 @@ public class AccountServiceImpl implements AccountService {
 			loginFail(card);
 			throw new AccountNotFoundException("卡号或密码错误");
 		}
+		if ("LOCKED".equals(account.getStatus())){
+			throw new AccountLockedException("账户已锁定,请联系管理员进行解锁");
+		}
 		String decryptedPassword;
 		try {
 			decryptedPassword = PasswordUtils.decryptPassword(password, aesKey);
@@ -105,7 +108,7 @@ public class AccountServiceImpl implements AccountService {
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
 			loginFail(card);
-			throw new PasswordComparisonException("密码错误");
+			throw new PasswordComparisonException("卡号或密码错误");
 		}
 
 		Map<String, Object> claims = new HashMap<>();
@@ -274,8 +277,8 @@ public class AccountServiceImpl implements AccountService {
 			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofHours(1));
 			throw new AccountLockedException("账户已锁定，请1小时后重试");
 		}else if (failCount == 20){
-			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofDays(1));
-			throw new AccountLockedException("账户已锁定，请1天后重试");
+			AccountMapper.lockAccount(card);
+			throw new AccountLockedException("账户已锁定，请联系管理员进行解锁");
 		}
 	}
 

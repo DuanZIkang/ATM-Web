@@ -26,7 +26,7 @@
 
 <script setup>
 import NavBar from "@/components/NavBar.vue";
-import axios from "axios";
+import request from "@/utils/request";
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 
@@ -81,17 +81,15 @@ async function doDeposit() {
   try {
     // ✅ 明确转换为数字，防止发送 NaN
     const amountValue = parseFloat(amount.value);
-    
+
     if (isNaN(amountValue) || amountValue <= 0) {
       msg.value = "金额格式错误";
       return;
     }
 
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/deposit`, {
+    const res = await request.post("/deposit", {
       card: userInfo.card,
       amount: amountValue  // ✅ 确保是有效的数字
-    }, {
-      headers: { token: sessionStorage.getItem("token") }
     });
 
     if (res.data.success) {
@@ -105,7 +103,7 @@ async function doDeposit() {
       msg.value = res.data.message || "存款失败";
     }
   } catch (e) {
-    msg.value = e.response?.data?.message || "服务器错误";
+    msg.value = e.message || "服务器错误";
   }
 }
 </script>

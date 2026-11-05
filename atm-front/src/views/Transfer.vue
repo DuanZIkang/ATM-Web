@@ -28,7 +28,7 @@
 
 <script setup>
 import NavBar from "@/components/NavBar.vue";
-import axios from "axios";
+import request from "@/utils/request";
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -64,12 +64,10 @@ async function doTransfer() {
   }
 
   try {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/transfer`, {
+    const res = await request.post("/transfer", {
       fromCard: userInfo.card,
       toCard: toCard.value,
       amount: parseFloat(amount.value)
-    }, {
-      headers: { token: sessionStorage.getItem("token") }
     });
 
     if (res.data.success) {
@@ -81,7 +79,7 @@ async function doTransfer() {
       msg.value = res.data.message || "转账失败";
     }
   } catch (e) {
-    msg.value = e.response?.data?.message || "服务器错误";
+    msg.value = e.message || "服务器错误";
   }
 }
 </script>

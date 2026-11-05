@@ -18,7 +18,7 @@
 
 <script>
 import NavBar from '@/components/NavBar.vue';
-import axios from 'axios';
+import request from '@/utils/request';
 import { createRouter as $router } from "vue-router";
 
 export default {
@@ -37,13 +37,16 @@ export default {
       return;
     }
 
-    const r = await axios.get(`${import.meta.env.VITE_API_URL}/info`, {
-      params: { card: userInfo.card },
-      headers: { token: sessionStorage.getItem("token") }
-    });
+    try {
+      const r = await request.get("/info", {
+        params: { card: userInfo.card }
+      });
 
-    if (r.data.success) {
-      this.info = r.data.data;
+      if (r.data.success) {
+        this.info = r.data.data;
+      }
+    } catch (e) {
+      console.error("获取账户信息失败:", e.message);
     }
   }
 }

@@ -24,7 +24,7 @@
 
 <script setup>
 import NavBar from "@/components/NavBar.vue";
-import axios from "axios";
+import request from "@/utils/request";
 import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 
@@ -65,12 +65,10 @@ async function doWithdraw() {
       return;
     }
 
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/withdraw`, {
+    const res = await request.post("/withdraw", {
       card: userInfo.card,
       amount: amountValue,
       password: ""
-    }, {
-      headers: { token: sessionStorage.getItem("token") }
     });
 
     if (res.data.success) {
@@ -84,7 +82,7 @@ async function doWithdraw() {
       msg.value = res.data.message || "取款失败";
     }
   } catch (e) {
-    msg.value = e.response?.data?.message || "服务器错误";
+    msg.value = e.message || "服务器错误";
   }
 }
 </script>

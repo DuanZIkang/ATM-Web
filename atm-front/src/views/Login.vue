@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref } from "vue";
-import axios from "axios";
+import request from "@/utils/request";
 import { useRouter} from "vue-router";
 import { encryptPassword } from "@/assets/scripts/encryption";
 
@@ -36,9 +36,8 @@ async function doLogin() {
   msg.value = "";
   try {
     const encryptedPassword = encryptPassword(password.value);
-    const api = import.meta.env.VITE_API_URL;
 
-    const res = await axios.post(`${api}/login`, {
+    const res = await request.post("/login", {
       card: card.value,
       password: encryptedPassword
     });
@@ -62,7 +61,8 @@ async function doLogin() {
 
     await router.push("/home");
   } catch (e) {
-    msg.value = "服务器错误";
+    // 显示后端返回的自定义错误消息，如果没有则显示默认错误
+    msg.value = e.message || "服务器错误";
   }
 }
 </script>

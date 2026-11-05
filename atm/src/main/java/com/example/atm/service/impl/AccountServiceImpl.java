@@ -2,6 +2,7 @@ package com.example.atm.service.impl;
 
 import com.example.atm.Utils.JwtUtils;
 import com.example.atm.Utils.PasswordUtils;
+import com.example.atm.common.LoginFailedException;
 import com.example.atm.common.exception.*;
 import com.example.atm.dto.DepositRequest;
 import com.example.atm.dto.LoginResponse;
@@ -55,12 +56,13 @@ public class AccountServiceImpl implements AccountService {
 		String decrypted;
 		try {
 			decrypted = PasswordUtils.decryptPassword(account.getPassword(), aesKey);
-			if (!decrypted.matches("\\d{6}")) {
-				throw new DataFormatException("密码格式异常");
-			}
 		} catch (Exception e) {
 			log.error("注册时密码解密失败: {}", e.getMessage());
 			throw new CryptoServiceException("服务器内部错误");
+		}
+		// 格式校验放在 try 外面，否则会被上面的 catch (Exception) 吞掉并误报成 500
+		if (!decrypted.matches("\\d{6}")) {
+			throw new DataFormatException("密码格式异常");
 		}
 		//  存 BCrypt hash，而不是明文
 		account.setPassword(bcrypt.encode(decrypted));
@@ -89,7 +91,7 @@ public class AccountServiceImpl implements AccountService {
 		if (account == null) {
 			log.error("卡号不存在");
 			loginFail(card);
-			throw new AccountNotFoundException("卡号或密码错误");
+			throw new LoginFailedException("卡号或密码错误");
 		}
 		if ("LOCKED".equals(account.getStatus())){
 			throw new AccountLockedException("账户已锁定,请联系管理员进行解锁");
@@ -108,7 +110,7 @@ public class AccountServiceImpl implements AccountService {
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
 			loginFail(card);
-			throw new PasswordComparisonException("卡号或密码错误");
+			throw new LoginFailedException("卡号或密码错误");
 		}
 
 		Map<String, Object> claims = new HashMap<>();
@@ -145,9 +147,10 @@ public class AccountServiceImpl implements AccountService {
 
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public Account withdraw(WithdrawRequest req) {
 		checkPositive(req.getAmount());
-		Account a = AccountMapper.findByCard(req.getCard());
+		Account a = AccountMapper.findByCardForUpdate(req.getCard());
 		if (a == null) throw new AccountNotFoundException("账户不存在");
 		if (a.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
 		checkDailyLimit(a, req.getAmount());
@@ -164,15 +167,20 @@ public class AccountServiceImpl implements AccountService {
 	@Transactional(rollbackFor = Exception.class)
 	public Account transfer(TransferRequest req) {
 		checkPositive(req.getAmount());
-		Account from = AccountMapper.findByCard(req.getFromCard());
-		Account to = AccountMapper.findByCard(req.getToCard());
+		String c1 = req.getFromCard(), c2 = req.getToCard();
+		boolean fromFirst = c1.compareTo(c2) <= 0;
+		Account first  = AccountMapper.findByCardForUpdate(fromFirst ? c1 : c2);
+		Account second = AccountMapper.findByCardForUpdate(fromFirst ? c2 : c1);
+		Account from = fromFirst ? first : second;
+		Account to   = fromFirst ? second : first;
 		if (from == null || to == null) throw new AccountNotFoundException("账户不存在");
 		if (!(from.getBalance().compareTo(req.getAmount()) > 0)) throw new InsufficientBalanceException("余额不足");
+		if (from.getCard().equals(to.getCard())) throw new DataFormatException("不能转账给自己");
 		checkDailyLimit(from, req.getAmount());
 		BigDecimal fromNew = from.getBalance().subtract(req.getAmount());
 		BigDecimal toNew = to.getBalance().add(req.getAmount());
-		AccountMapper.updateBalance(req.getFromCard(), fromNew);
-		AccountMapper.updateBalance(req.getToCard(), toNew);
+		AccountMapper.updateBalance(from.getCard(), fromNew);
+		AccountMapper.updateBalance(to.getCard(), toNew);
 
 		from.setBalance(fromNew);
 		return from;

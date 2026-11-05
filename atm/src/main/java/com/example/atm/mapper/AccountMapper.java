@@ -59,4 +59,11 @@ public interface AccountMapper {
         WHERE card = #{card}
     """)
     void lockAccount(String card);
+    @Select("""
+    SELECT card, name, password, balance, daily_limit AS dailyLimit, sex
+    FROM account
+    WHERE card = #{card}
+    FOR UPDATE
+""")
+    Account findByCardForUpdate(String card);
 }

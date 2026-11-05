@@ -1,15 +1,12 @@
 <script setup>
 import NavBar from "@/components/NavBar.vue";
-import axios from "axios";
+import request from "@/utils/request";
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
 const records = ref([]);
 const loading = ref(false);
-
-// VITE_API_URL 是 /api/atm 或 https://xxx/api/atm，去掉 /atm 得到 /api 前缀
-const API_BASE = import.meta.env.VITE_API_URL.replace(/\/atm$/, "");
 
 function isIncome(type) {
   return type === "DEPOSIT" || type === "TRANSFER_IN";
@@ -33,13 +30,14 @@ async function loadRecords() {
 
   loading.value = true;
   try {
-    const res = await axios.get(`${API_BASE}/transactions/all`, {
-      params: { card: userInfo.card },
-      headers: { token }
+    // 使用相对路径，注意这里访问的是 /api/transactions/all，不在 /api/atm 下
+    const res = await request.get("../transactions/all", {
+      params: { card: userInfo.card }
     });
     // 该接口直接返回数组，不是 Result 包装
     records.value = res.data || [];
   } catch (e) {
+    console.error("加载交易记录失败:", e.message);
     records.value = [];
   } finally {
     loading.value = false;

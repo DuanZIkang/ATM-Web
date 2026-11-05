@@ -40,7 +40,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import request from "@/utils/request";
 import NavBar from "@/components/NavBar.vue";
 import { encryptPassword } from "@/assets/scripts/encryption";
 
@@ -72,7 +72,7 @@ export default {
       }
 
       try {
-        const res = await axios.post(`${import.meta.env.VITE_API_URL}/register`, {
+        const res = await request.post("/register", {
           name: this.name,
           password: encryptPassword(this.password),
           balance: 0,
@@ -90,7 +90,7 @@ export default {
         this.$router.push("/home");
 
       } catch (e) {
-        this.msg = e.response?.data || "服务器错误";
+        this.msg = e.message || "服务器错误";
       }
     }
   }

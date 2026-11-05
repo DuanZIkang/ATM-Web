@@ -21,7 +21,7 @@
 
 <script setup>
 import NavBar from "@/components/NavBar.vue";
-import axios from "axios";
+import request from "@/utils/request";
 import {ref} from "vue";
 import {useRouter} from "vue-router";
 import {encryptPassword} from "@/assets/scripts/encryption";
@@ -40,13 +40,11 @@ async function changePwd() {
   }
 
   try {
-    const res = await axios.post(`${import.meta.env.VITE_API_URL}/change`, {
+    const res = await request.post("/change", {
       card: userInfo.card,
       // ✅ 旧密码和新密码都 AES 加密后传输
       oldPwd: encryptPassword(oldPwd.value),
       newPwd: encryptPassword(newPwd.value)
-    }, {
-      headers: {token: sessionStorage.getItem("token")}
     });
 
     if (res.data.success) {
@@ -56,7 +54,7 @@ async function changePwd() {
       msg.value = res.data.message || "修改失败";
     }
   } catch (e) {
-    msg.value = "服务器错误";
+    msg.value = e.message || "服务器错误";
   }
 }
 </script>

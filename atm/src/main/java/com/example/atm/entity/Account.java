@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 与数据库 account 表一一对应的实体类。
@@ -34,5 +35,5 @@ public class Account implements Serializable {
     private BigDecimal balance;
     private String status;
     private String token;
-
+	private LocalDateTime closeTime;
 }

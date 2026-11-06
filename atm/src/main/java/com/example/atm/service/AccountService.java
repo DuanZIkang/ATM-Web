@@ -19,4 +19,5 @@ public interface AccountService {
 
     Account getInfo(String card);
 
+    void closeAccount(String card, String password);
 }

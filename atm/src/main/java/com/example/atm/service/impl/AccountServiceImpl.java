@@ -15,6 +15,7 @@ import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,9 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+
 import static com.example.atm.Utils.RedisConstants.FAIL_KEY;
 import static com.example.atm.Utils.RedisConstants.LOCK_KEY;
 
@@ -43,6 +46,11 @@ public class AccountServiceImpl implements AccountService {
 	//  BCrypt 实例
 	private static final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder(12);
 
+	/**
+	 * 生成以 6222 开头的 16 位卡号字符串，剩余位数由随机数字组成。
+	 *
+	 * @return 生成的 16 位卡号字符串
+	 */
 	private String generateCard() {
 		StringBuilder sb = new StringBuilder("6222");
 		ThreadLocalRandom rnd = ThreadLocalRandom.current();
@@ -85,27 +93,19 @@ public class AccountServiceImpl implements AccountService {
 
 	//  登录：AES 解密 → BCrypt 比对 → 返回 LoginResponse（无密码）
 	@Override
-	public LoginResponse login(String card, String password)  {
+	public LoginResponse login(String card, String password) {
 		checkLocked(card);
 		Account account = AccountMapper.login(card);
-		if (account == null) {
+		// 被注销或查不到账户统一记录卡号不存在并返回通用错误提示
+		if (account == null || "cancel".equals(account.getStatus())) {
 			log.error("卡号不存在");
 			loginFail(card);
 			throw new LoginFailedException("卡号或密码错误");
 		}
-		if ("LOCKED".equals(account.getStatus())){
+		if ("LOCKED".equals(account.getStatus())) {
 			throw new AccountLockedException("账户已锁定,请联系管理员进行解锁");
 		}
-		String decryptedPassword;
-		try {
-			decryptedPassword = PasswordUtils.decryptPassword(password, aesKey);
-		} catch (IllegalArgumentException iae) {
-			log.error("加密配置错误: {}", iae.getMessage());
-			throw new CryptoServiceException("服务器错误");
-		} catch (Exception e) {
-			log.error("密码解密失败: {}", e.getMessage());
-			throw new CryptoServiceException("服务器错误");
-		}
+		String decryptedPassword = decryptUserPassword(password);
 
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
@@ -127,6 +127,20 @@ public class AccountServiceImpl implements AccountService {
 				account.getBalance(),
 				token
 		);
+	}
+
+	private @NonNull String decryptUserPassword(String password) {
+		String decryptedPassword;
+		try {
+			decryptedPassword = PasswordUtils.decryptPassword(password, aesKey);
+		} catch (IllegalArgumentException iae) {
+			log.error("加密配置错误: {}", iae.getMessage());
+			throw new CryptoServiceException("服务器错误");
+		} catch (Exception e) {
+			log.error("密码解密失败: {}", e.getMessage());
+			throw new CryptoServiceException("服务器错误");
+		}
+		return decryptedPassword;
 	}
 
 
@@ -169,10 +183,10 @@ public class AccountServiceImpl implements AccountService {
 		checkPositive(req.getAmount());
 		String c1 = req.getFromCard(), c2 = req.getToCard();
 		boolean fromFirst = c1.compareTo(c2) <= 0;
-		Account first  = AccountMapper.findByCardForUpdate(fromFirst ? c1 : c2);
+		Account first = AccountMapper.findByCardForUpdate(fromFirst ? c1 : c2);
 		Account second = AccountMapper.findByCardForUpdate(fromFirst ? c2 : c1);
 		Account from = fromFirst ? first : second;
-		Account to   = fromFirst ? second : first;
+		Account to = fromFirst ? second : first;
 		if (from == null || to == null) throw new AccountNotFoundException("账户不存在");
 		if (!(from.getBalance().compareTo(req.getAmount()) > 0)) throw new InsufficientBalanceException("余额不足");
 		if (from.getCard().equals(to.getCard())) throw new DataFormatException("不能转账给自己");
@@ -215,11 +229,46 @@ public class AccountServiceImpl implements AccountService {
 		return true;
 	}
 
+	/**
+	 * 根据 card 查询账户信息。
+	 *
+	 * @param card 账户卡号
+	 * @return 对应的 Account 信息；如果未找到则返回 null
+	 */
 	@Override
 	public Account getInfo(String card) {
 		return AccountMapper.findByCard(card);
 	}
 
+	/**
+	 * <p>注销账户</p>
+	 * <p>只有当账户余额为零时，才能注销该账户。</p>
+	 * <p>如果账户余额不为零，则会抛出 {@code BalanceNotZeroException} 异常，
+	 * 且不会注销该账户。</p>
+	 *
+	 * @param card    账户卡号
+	 * @param password 账户密码
+	 * @throws BalanceNotZeroException 如果账户余额不为零
+	 */
+	@Override
+	public void closeAccount(String card, String password) {
+		Account user = AccountMapper.findByCard(card);
+		String decryptedPassword = decryptUserPassword(password);
+		if (!bcrypt.matches(decryptedPassword, user.getPassword())) {
+			throw new PasswordComparisonException("密码错误");
+		}
+		if (user.getBalance().compareTo(BigDecimal.ZERO) > 0) {
+			throw new BalanceNotZeroException("账户还有余额,注销失败");
+		}
+		AccountMapper.closeAccount(card, LocalDateTime.now());
+	}
+
+	/**
+	 * 校验金额是否为正数。
+	 *
+	 * @param amount 待校验的金额
+	 * @throws DataFormatException 当 amount 小于或等于 BigDecimal.ZERO 时抛出
+	 */
 	private void checkPositive(BigDecimal amount) {
 		if (!(amount.compareTo(BigDecimal.ZERO) > 0)) {
 			throw new DataFormatException("金额不能为负数！");
@@ -252,6 +301,7 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * 对失败的卡号进行失败计数，并在失败次数达到一定程度后进行阶段锁定
+	 *
 	 * @param card 卡号
 	 */
 	private void loginFail(String card) {
@@ -270,21 +320,22 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * 根据失败次数进行阶段锁定
-	 * @param card 卡号
+	 *
+	 * @param card      卡号
 	 * @param failCount 失败次数
 	 */
-	private void lockAccount(String card, Long failCount)  {
+	private void lockAccount(String card, Long failCount) {
 		String lockKey = LOCK_KEY + card;
-		if (failCount == 5){
+		if (failCount == 5) {
 			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofMinutes(15));
 			throw new AccountLockedException("账户已锁定，请15分钟后重试");
 		} else if (failCount == 10) {
 			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofMinutes(30));
 			throw new AccountLockedException("账户已锁定，请30分钟后重试");
-		}else if (failCount == 15){
+		} else if (failCount == 15) {
 			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofHours(1));
 			throw new AccountLockedException("账户已锁定，请1小时后重试");
-		}else if (failCount == 20){
+		} else if (failCount == 20) {
 			AccountMapper.lockAccount(card);
 			throw new AccountLockedException("账户已锁定，请联系管理员进行解锁");
 		}
@@ -306,6 +357,7 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * 格式化等待时间
+	 *
 	 * @param seconds 剩余秒数
 	 * @return 格式化后的等待时间
 	 */

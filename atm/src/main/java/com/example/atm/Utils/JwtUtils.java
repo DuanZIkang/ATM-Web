@@ -24,9 +24,9 @@ public class JwtUtils {
 	private static final String SECRET_KEY_STR = "5q2k6aG555uu77yIVGxpYXPns7vnu5/vvInkuLp2YWVkdeW8gOWPkeeahOWfuuS6jnNwcmluZ2Jvb3QrdnVl55qE5YWo5qCI6aG555uu";
 
 	/**
-	 * 过期时间：6 小时（毫秒）
+	 * 过期时间：15 分钟（毫秒）
 	 */
-	private static final long EXPIRATION_MS = 6 * 60 * 60 * 1000L;
+	private static final long EXPIRATION_MS = 15 * 60 * 1000L;
 
 	/**
 	 * 基于密钥字符串构建 SecretKey

@@ -2,10 +2,11 @@ package com.example.atm.service.impl;
 
 import com.example.atm.Utils.JwtUtils;
 import com.example.atm.Utils.PasswordUtils;
-import com.example.atm.common.LoginFailedException;
+import com.example.atm.common.exception.LoginFailedException;
 import com.example.atm.common.exception.*;
 import com.example.atm.dto.DepositRequest;
 import com.example.atm.dto.LoginResponse;
+import com.example.atm.dto.RegisterRequest;
 import com.example.atm.dto.TransferRequest;
 import com.example.atm.dto.WithdrawRequest;
 import com.example.atm.entity.Account;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -37,8 +40,8 @@ import static com.example.atm.Utils.RedisConstants.LOCK_KEY;
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
 
-	private final AccountMapper AccountMapper;
-	private final TransactionMapper TransactionMapper;
+	private final AccountMapper accountMapper;
+	private final TransactionMapper transactionMapper;
 	private final TransactionService transactionService;
 	private final StringRedisTemplate stringRedisTemplate;
 	@Value("${atm.aes-key}")
@@ -58,35 +61,32 @@ public class AccountServiceImpl implements AccountService {
 		return sb.toString();
 	}
 
-	//  注册：AES 解密 → BCrypt 加密 → 存库
+	//  注册：AES 解密 → BCrypt 加密 → 存库。卡号、余额、状态都由服务端决定
 	@Override
-	public Account register(Account account) {
-		String decrypted;
-		try {
-			decrypted = PasswordUtils.decryptPassword(account.getPassword(), aesKey);
-		} catch (Exception e) {
-			log.error("注册时密码解密失败: {}", e.getMessage());
-			throw new CryptoServiceException("服务器内部错误");
-		}
-		// 格式校验放在 try 外面，否则会被上面的 catch (Exception) 吞掉并误报成 500
+	public Account register(RegisterRequest req) {
+		String decrypted = decryptUserPassword(req.getPassword());
+		// 格式校验放在解密之外，避免被解密的 catch 吞掉
 		if (!decrypted.matches("\\d{6}")) {
 			throw new DataFormatException("密码格式异常");
 		}
+
+		Account account = new Account();
+		account.setName(req.getName().trim());
+		account.setSex(req.getSex());
+		account.setDailyLimit(req.getDailyLimit());
+		account.setBalance(BigDecimal.ZERO);
 		//  存 BCrypt hash，而不是明文
 		account.setPassword(bcrypt.encode(decrypted));
 
-		if (account.getCard() == null || account.getCard().isEmpty()) {
-			String card;
-			do {
-				card = generateCard();
-			}
-			while (AccountMapper.findByCard(card) != null);
-			account.setCard(card);
-		}
+		String card;
+		do {
+			card = generateCard();
+		} while (accountMapper.findByCard(card) != null);
+		account.setCard(card);
 
-		AccountMapper.insert(account);
+		accountMapper.insert(account);
 
-		Account saved = AccountMapper.findByCard(account.getCard());
+		Account saved = accountMapper.findByCard(card);
 		saved.setPassword(null); //  注册成功不返回 hash
 		return saved;
 	}
@@ -95,29 +95,35 @@ public class AccountServiceImpl implements AccountService {
 	@Override
 	public LoginResponse login(String card, String password) {
 		checkLocked(card);
-		Account account = AccountMapper.login(card);
-		// 被注销或查不到账户统一记录卡号不存在并返回通用错误提示
-		if (account == null || "cancel".equals(account.getStatus())) {
-			log.error("卡号不存在");
+		Account account = accountMapper.login(card);
+		//注销时间超过7天或查不到账户统一记录卡号不存在并返回通用错误提示
+		if (account == null) {
 			loginFail(card);
 			throw new LoginFailedException("卡号或密码错误");
 		}
-		if ("LOCKED".equals(account.getStatus())) {
-			throw new AccountLockedException("账户已锁定,请联系管理员进行解锁");
+		boolean cancelled = "cancel".equals(account.getStatus());
+		LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+		if (cancelled && account.getCloseTime() != null
+				&& now.isAfter(account.getCloseTime().plusDays(7))) {
+			loginFail(card);
+			throw new LoginFailedException("卡号或密码错误");
 		}
 		String decryptedPassword = decryptUserPassword(password);
-
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
 			loginFail(card);
 			throw new LoginFailedException("卡号或密码错误");
 		}
-
+		if (cancelled) {
+			// 注销未满7天的处理
+			log.info("未满7天，取消注销");
+			accountMapper.restoreCancelAccount(account.getCard());
+		}
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("card", account.getCard());
 		claims.put("name", account.getName());
 		String token = JwtUtils.generateToken(claims);
-
+		stringRedisTemplate.delete(FAIL_KEY + card);
 		//  返回 DTO，不含密码字段
 		return new LoginResponse(
 				account.getCard(),
@@ -148,11 +154,11 @@ public class AccountServiceImpl implements AccountService {
 	@Transactional(rollbackFor = Exception.class)
 	public Account deposit(DepositRequest req) {
 		checkPositive(req.getAmount());
-		Account a = AccountMapper.findByCard(req.getCard());
-		if (a == null) throw new AccountNotFoundException("账户不存在");
+		Account a = accountMapper.findByCardForUpdate(req.getCard());
+		if (a == null || "cancel".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
 
 		BigDecimal newBalance = a.getBalance().add(req.getAmount());
-		AccountMapper.updateBalance(req.getCard(), newBalance);
+		accountMapper.updateBalance(req.getCard(), newBalance);
 		transactionService.record(req.getCard(), "DEPOSIT", req.getAmount(), "存款");
 
 		a.setBalance(newBalance);
@@ -164,12 +170,12 @@ public class AccountServiceImpl implements AccountService {
 	@Transactional(rollbackFor = Exception.class)
 	public Account withdraw(WithdrawRequest req) {
 		checkPositive(req.getAmount());
-		Account a = AccountMapper.findByCardForUpdate(req.getCard());
-		if (a == null) throw new AccountNotFoundException("账户不存在");
+		Account a = accountMapper.findByCardForUpdate(req.getCard());
+		if (a == null || "cancel".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
 		if (a.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
 		checkDailyLimit(a, req.getAmount());
 		BigDecimal newBalance = a.getBalance().subtract(req.getAmount());
-		AccountMapper.updateBalance(req.getCard(), newBalance);
+		accountMapper.updateBalance(req.getCard(), newBalance);
 		transactionService.record(req.getCard(), "WITHDRAW", req.getAmount(), "取款");
 
 		a.setBalance(newBalance);
@@ -183,19 +189,26 @@ public class AccountServiceImpl implements AccountService {
 		checkPositive(req.getAmount());
 		String c1 = req.getFromCard(), c2 = req.getToCard();
 		boolean fromFirst = c1.compareTo(c2) <= 0;
-		Account first = AccountMapper.findByCardForUpdate(fromFirst ? c1 : c2);
-		Account second = AccountMapper.findByCardForUpdate(fromFirst ? c2 : c1);
+		Account first = accountMapper.findByCardForUpdate(fromFirst ? c1 : c2);
+		Account second = accountMapper.findByCardForUpdate(fromFirst ? c2 : c1);
 		Account from = fromFirst ? first : second;
 		Account to = fromFirst ? second : first;
-		if (from == null || to == null) throw new AccountNotFoundException("账户不存在");
-		if (!(from.getBalance().compareTo(req.getAmount()) > 0)) throw new InsufficientBalanceException("余额不足");
+		if (from == null || to == null || "cancel".equals(to.getStatus()))
+			throw new AccountNotFoundException("账户不存在");
 		if (from.getCard().equals(to.getCard())) throw new DataFormatException("不能转账给自己");
+		if (from.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
 		checkDailyLimit(from, req.getAmount());
 		BigDecimal fromNew = from.getBalance().subtract(req.getAmount());
 		BigDecimal toNew = to.getBalance().add(req.getAmount());
-		AccountMapper.updateBalance(from.getCard(), fromNew);
-		AccountMapper.updateBalance(to.getCard(), toNew);
-
+		accountMapper.updateBalance(from.getCard(), fromNew);
+		accountMapper.updateBalance(to.getCard(), toNew);
+		transactionService.recordTransfer(
+				req.getFromCard(),
+				req.getToCard(),
+				req.getAmount(),
+				from.getName(),
+				to.getName()
+		);
 		from.setBalance(fromNew);
 		return from;
 	}
@@ -203,7 +216,7 @@ public class AccountServiceImpl implements AccountService {
 	//  修改密码：AES 解密 → BCrypt 比对旧密码 → BCrypt 加密新密码存库
 	@Override
 	public boolean changePassword(String card, String oldPwd, String newPwd) {
-		Account a = AccountMapper.findByCard(card);
+		Account a = accountMapper.findByCard(card);
 		if (a == null) throw new AccountNotFoundException("用户不存在");
 		String decryptedOld;
 		String decryptedNew;
@@ -225,7 +238,7 @@ public class AccountServiceImpl implements AccountService {
 			throw new PasswordComparisonException("旧密码错误");
 		}
 
-		AccountMapper.updatePassword(card, bcrypt.encode(decryptedNew));
+		accountMapper.updatePassword(card, bcrypt.encode(decryptedNew));
 		return true;
 	}
 
@@ -237,7 +250,7 @@ public class AccountServiceImpl implements AccountService {
 	 */
 	@Override
 	public Account getInfo(String card) {
-		return AccountMapper.findByCard(card);
+		return accountMapper.findByCard(card);
 	}
 
 	/**
@@ -246,21 +259,26 @@ public class AccountServiceImpl implements AccountService {
 	 * <p>如果账户余额不为零，则会抛出 {@code BalanceNotZeroException} 异常，
 	 * 且不会注销该账户。</p>
 	 *
-	 * @param card    账户卡号
+	 * @param card     账户卡号
 	 * @param password 账户密码
 	 * @throws BalanceNotZeroException 如果账户余额不为零
 	 */
 	@Override
 	public void closeAccount(String card, String password) {
-		Account user = AccountMapper.findByCard(card);
+		Account user = accountMapper.findByCard(card);
+		BigDecimal balance = user.getBalance();
 		String decryptedPassword = decryptUserPassword(password);
 		if (!bcrypt.matches(decryptedPassword, user.getPassword())) {
 			throw new PasswordComparisonException("密码错误");
 		}
-		if (user.getBalance().compareTo(BigDecimal.ZERO) > 0) {
+		if (balance.compareTo(BigDecimal.ZERO) > 0) {
 			throw new BalanceNotZeroException("账户还有余额,注销失败");
 		}
-		AccountMapper.closeAccount(card, LocalDateTime.now());
+		int rows = accountMapper.closeAccount(card, LocalDateTime.now(ZoneId.of("Asia/Shanghai")), balance);
+		if (rows == 0) {
+			// 余额在读取之后发生了变动（或状态已变），统一终止
+			throw new ConcurrentUpdateException("账户状态已变化，请重试");
+		}
 	}
 
 	/**
@@ -282,7 +300,7 @@ public class AccountServiceImpl implements AccountService {
 	 * @return 今日支出金额
 	 */
 	private BigDecimal getTodayOutflow(String card) {
-		return TransactionMapper.sumTodayOutflow(card);
+		return transactionMapper.sumTodayOutflow(card);
 	}
 
 	/**
@@ -336,18 +354,26 @@ public class AccountServiceImpl implements AccountService {
 			stringRedisTemplate.opsForValue().set(lockKey, "locked", Duration.ofHours(1));
 			throw new AccountLockedException("账户已锁定，请1小时后重试");
 		} else if (failCount == 20) {
-			AccountMapper.lockAccount(card);
+			accountMapper.lockAccount(card);
 			throw new AccountLockedException("账户已锁定，请联系管理员进行解锁");
 		}
 	}
 
 	/**
 	 * 登陆时调用，检查账户是否被锁定
-	 * 被锁定后，提示尝试次数过多，需要等待一段时间才能再次尝试
+	 * 被锁定后，根据不同情况进行返回
+	 *
+	 * <p>需要手动解锁：提示联系管理员</p>
+	 * <p>临时锁定：提示尝试次数过多，需要等待一段时间才能再次尝试</p>
 	 *
 	 * @param card 要检查锁定状态的卡号
 	 */
 	private void checkLocked(String card) {
+		Account account = accountMapper.findByCard(card);
+		if (account == null) return;
+		if ("LOCKED".equals(account.getStatus())) {
+			throw new AccountLockedException("账户已锁定,请联系管理员进行解锁");
+		}
 		// getExpire 返回：>0 剩余秒数；-2 key 不存在；-1 存在但无过期时间
 		Long sec = stringRedisTemplate.getExpire(LOCK_KEY + card);
 		if (sec != null && sec > 0) {
@@ -364,5 +390,16 @@ public class AccountServiceImpl implements AccountService {
 	private String formatWait(long seconds) {
 		long minutes = (seconds + 59) / 60;          // 向上取整
 		return minutes >= 60 ? (minutes / 60) + " 小时" : minutes + " 分钟";
+	}
+
+	/**
+	 * 定时删除已注销的账户数据。
+	 * 每周四的4点删除注销15天及以上的用户
+	 */
+	@Scheduled(cron = "0 0 4 ? * thu", zone = "Asia/Shanghai")
+	public void deleteCancelAccount() {
+		LocalDateTime threshold = LocalDateTime.now(ZoneId.of("Asia/Shanghai")).minusDays(15);
+		int delCount = accountMapper.deleteCancelAccount(threshold);
+		log.info("北京时间{},已注销账户数据已删除，共删除 {} 条", LocalDateTime.now(), delCount);
 	}
 }

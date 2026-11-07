@@ -7,7 +7,7 @@ public interface AccountService {
 
     LoginResponse login(String card, String password) ;
 
-    Account register(Account account);
+    Account register(RegisterRequest req);
 
     Account deposit(DepositRequest req);
 

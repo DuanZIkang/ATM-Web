@@ -18,6 +18,14 @@ public class TransactionServiceImpl implements TransactionService {
         this.mapper = mapper;
     }
 
+    /**
+     * 记录一笔交易信息，并设置当前时间后保存。
+     *
+     * @param card 交易关联的卡号
+     * @param type 交易类型
+     * @param amount 交易金额
+     * @param remark 交易备注
+     */
     @Override
     public void record(String card, String type, BigDecimal amount, String remark) {
         Transaction t = new Transaction();

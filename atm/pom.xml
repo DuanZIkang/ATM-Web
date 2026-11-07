@@ -21,7 +21,62 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jjwt.version>0.13.0</jjwt.version>
+        <!-- 安全修复：覆盖有漏洞的依赖版本 -->
+        <mysql.version>26.10.0</mysql.version>
+        <logback.version>1.6.6</logback.version>
+        <jackson.version>3.2.4</jackson.version>
     </properties>
+
+    <!-- 依赖版本管理：修复 CVE 漏洞 -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- 修复 CVE-2026-60586, CVE-2026-60623, CVE-2026-60624, CVE-2026-61082 -->
+            <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>${mysql.version}</version>
+            </dependency>
+
+            <!-- 修复 CVE-2026-110879 (CRITICAL 9.8) - Jackson 反序列化漏洞 -->
+            <dependency>
+                <groupId>tools.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- 修复 CVE-2026-19880 (传递依赖来自 spring-boot-starter-logging) -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <!-- 修复测试依赖的 CVE 漏洞 -->
+            <!-- 修复 CVE-2026-113602 -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.6.1</version>
+            </dependency>
+            <!-- 修复 CVE-2026-110260 等 ASM 相关漏洞 -->
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>9.11.1</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>5.8.44</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- Spring Boot 4：starter 按功能拆分，web 对应 webmvc；aop 代码里没用到，已移除 -->
@@ -85,10 +140,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- 排除有漏洞的测试依赖 CVE-2026-110974 -->
+                <exclusion>
+                    <groupId>com.vaadin.external.google</groupId>
+                    <artifactId>android-json</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
         </dependency>
     </dependencies>
 

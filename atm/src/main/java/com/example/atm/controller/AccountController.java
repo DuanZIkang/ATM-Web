@@ -2,15 +2,12 @@ package com.example.atm.controller;
 
 import com.example.atm.Utils.CurrentUser;
 import com.example.atm.common.Result;
-import com.example.atm.dto.DepositRequest;
-import com.example.atm.dto.LoginResponse;
-import com.example.atm.dto.TransferRequest;
-import com.example.atm.dto.WithdrawRequest;
+import com.example.atm.dto.*;
 import com.example.atm.entity.Account;
 import com.example.atm.service.AccountService;
 import com.example.atm.service.TransactionService;
 import lombok.AllArgsConstructor;
-import jakarta.validation.Valid;  // ← 导入 Jakarta validation
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,9 +18,8 @@ public class AccountController {
 	private final TransactionService transactionService;
 
 	@PostMapping("/register")
-	public Result register(@RequestBody Account req) {
-		Account acc = accountService.register(req);
-		return Result.ok(acc);
+	public Result register(@Valid @RequestBody RegisterRequest req) {
+		return Result.ok(accountService.register(req));
 	}
 
 	@PostMapping("/login")
@@ -67,15 +63,6 @@ public class AccountController {
 		Account to = accountService.getInfo(req.getToCard());
 
 		if (from == null || to == null) return Result.err("转账账户不存在");
-
-		transactionService.recordTransfer(
-				req.getFromCard(),
-				req.getToCard(),
-				req.getAmount(),
-				from.getName(),
-				to.getName()
-		);
-
 		transfer.setPassword(null);
 		return Result.ok(transfer);
 	}

@@ -135,6 +135,7 @@ const handleSubmit = async () => {
     if (res.data.success) {
       // 成功：显示成功消息并跳转
       ElMessage.success(res.data.message || '注销成功');
+      alert("注销成功,7天后将彻底删除您的数据，若中途反悔可重新登陆以取消")
       setTimeout(() => {
         sessionStorage.clear();
         router.push('/login');

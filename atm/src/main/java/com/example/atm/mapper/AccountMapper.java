@@ -15,7 +15,8 @@ public interface AccountMapper {
 			           password,
 			           balance,
 			           daily_limit AS dailyLimit,
-			           sex
+			           sex,
+			           status
 			    FROM account
 			    WHERE card = #{card}
 			""")
@@ -28,15 +29,16 @@ public interface AccountMapper {
 			           balance,
 			           daily_limit AS dailyLimit,
 			           sex,
-			           status
+			           status,
+			           close_time AS closeTime
 			    FROM account
 			    WHERE card = #{card}
 			""")
 	Account login(String card);
 
 	@Insert("""
-			    INSERT INTO account(card, name, password, balance, daily_limit, sex)
-			    VALUES(#{card}, #{name}, #{password}, #{balance}, #{dailyLimit}, #{sex})
+			    INSERT INTO account(card, name, password, balance, daily_limit, sex, status)
+			    VALUES(#{card}, #{name}, #{password}, #{balance}, #{dailyLimit}, #{sex}, 'ACTIVE')
 			""")
 	void insert(Account account);
 
@@ -64,17 +66,34 @@ public interface AccountMapper {
 	void lockAccount(String card);
 
 	@Select("""
-			    SELECT card, name, password, balance, daily_limit AS dailyLimit, sex
+			    SELECT card, name, password, balance, daily_limit AS dailyLimit, sex, status
 			    FROM account
 			    WHERE card = #{card}
 			    FOR UPDATE
 			""")
 	Account findByCardForUpdate(String card);
 
-    @Update("""
-		        UPDATE account
-		        SET status = 'cancel',close_time = #{closeTime}
-		    	WHERE card = #{card}
-		    """)
-    void closeAccount(String card, LocalDateTime closeTime);
+	@Update("""
+			    UPDATE account
+			    SET status = 'cancel',close_time = #{closeTime}
+				WHERE card = #{card}
+			    AND balance = #{balance}
+			""")
+	int closeAccount(String card, LocalDateTime closeTime,BigDecimal balance);
+
+	@Delete("""
+			DELETE FROM account where status = 'cancel'
+			AND close_time IS NOT NULL
+			AND close_time < #{threshold}
+			AND balance = 0
+			""")
+	int deleteCancelAccount(@Param("threshold") LocalDateTime threshold);
+
+	@Update("""
+			UPDATE account
+			SET status = 'ACTIVE'
+			, close_time = NULL
+			WHERE card = #{card}
+			""")
+	void restoreCancelAccount(@Param("card") String card);
 }

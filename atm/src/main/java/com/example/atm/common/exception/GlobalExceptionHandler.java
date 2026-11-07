@@ -1,6 +1,5 @@
 package com.example.atm.common.exception;
 
-import com.example.atm.common.LoginFailedException;
 import com.example.atm.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -172,10 +171,10 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 业务规则不允许：余额不足、超出每日限额、旧密码错误。
+     * 业务规则不允许：余额相关异常（超出每日限额，注销时余额不为零和余额不足）、旧密码错误。
      * 请求格式没问题，是当前状态/数据不满足条件，所以是 422 而不是 400。
      */
-    @ExceptionHandler({InsufficientBalanceException.class, DailyLimitExceededException.class,
+    @ExceptionHandler({BalanceException.class,
             PasswordComparisonException.class})
     public ResponseEntity<Result> handleBusinessRule(AccountException ex) {
         log.warn("业务规则不允许: {}", ex.getMessage());

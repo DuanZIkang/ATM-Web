@@ -75,14 +75,14 @@ public interface AccountMapper {
 
 	@Update("""
 			    UPDATE account
-			    SET status = 'cancel',close_time = #{closeTime}
+			    SET status = 'CANCEL',close_time = #{closeTime}
 				WHERE card = #{card}
 			    AND balance = #{balance}
 			""")
 	int closeAccount(String card, LocalDateTime closeTime,BigDecimal balance);
 
 	@Delete("""
-			DELETE FROM account where status = 'cancel'
+			DELETE FROM account where status = 'CANCEL'
 			AND close_time IS NOT NULL
 			AND close_time < #{threshold}
 			AND balance = 0

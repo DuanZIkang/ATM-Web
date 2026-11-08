@@ -101,7 +101,7 @@ public class AccountServiceImpl implements AccountService {
 			loginFail(card);
 			throw new LoginFailedException("卡号或密码错误");
 		}
-		boolean cancelled = "cancel".equals(account.getStatus());
+		boolean cancelled = "CANCEL".equals(account.getStatus());
 		LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
 		if (cancelled && account.getCloseTime() != null
 				&& now.isAfter(account.getCloseTime().plusDays(7))) {
@@ -155,7 +155,7 @@ public class AccountServiceImpl implements AccountService {
 	public Account deposit(DepositRequest req) {
 		checkPositive(req.getAmount());
 		Account a = accountMapper.findByCardForUpdate(req.getCard());
-		if (a == null || "cancel".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
+		if (a == null || "CANCEL".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
 
 		BigDecimal newBalance = a.getBalance().add(req.getAmount());
 		accountMapper.updateBalance(req.getCard(), newBalance);
@@ -171,7 +171,7 @@ public class AccountServiceImpl implements AccountService {
 	public Account withdraw(WithdrawRequest req) {
 		checkPositive(req.getAmount());
 		Account a = accountMapper.findByCardForUpdate(req.getCard());
-		if (a == null || "cancel".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
+		if (a == null || "CANCEL".equals(a.getStatus())) throw new AccountNotFoundException("账户不存在");
 		if (a.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
 		checkDailyLimit(a, req.getAmount());
 		BigDecimal newBalance = a.getBalance().subtract(req.getAmount());
@@ -193,7 +193,7 @@ public class AccountServiceImpl implements AccountService {
 		Account second = accountMapper.findByCardForUpdate(fromFirst ? c2 : c1);
 		Account from = fromFirst ? first : second;
 		Account to = fromFirst ? second : first;
-		if (from == null || to == null || "cancel".equals(to.getStatus()))
+		if (from == null || to == null || "CANCEL".equals(to.getStatus()))
 			throw new AccountNotFoundException("账户不存在");
 		if (from.getCard().equals(to.getCard())) throw new DataFormatException("不能转账给自己");
 		if (from.getBalance().compareTo(req.getAmount()) < 0) throw new InsufficientBalanceException("余额不足");
@@ -218,6 +218,7 @@ public class AccountServiceImpl implements AccountService {
 	public boolean changePassword(String card, String oldPwd, String newPwd) {
 		Account a = accountMapper.findByCard(card);
 		if (a == null) throw new AccountNotFoundException("用户不存在");
+		assertNotDemoAccount(a);
 		String decryptedOld;
 		String decryptedNew;
 		try {
@@ -255,17 +256,20 @@ public class AccountServiceImpl implements AccountService {
 
 	/**
 	 * <p>注销账户</p>
-	 * <p>只有当账户余额为零时，才能注销该账户。</p>
+	 * <p>只有当账户是非测试账号且余额为零时，才能注销该账户。</p>
 	 * <p>如果账户余额不为零，则会抛出 {@code BalanceNotZeroException} 异常，
 	 * 且不会注销该账户。</p>
-	 *
+	 *<p>如果账户状态为 TEST，则会抛出 {@code AccountVerificationException} 异常，
+	 * 且不会注销该账户。</p>
 	 * @param card     账户卡号
 	 * @param password 账户密码
 	 * @throws BalanceNotZeroException 如果账户余额不为零
+	 * @throws AccountVerificationException 如果账户状态为 TEST
 	 */
 	@Override
 	public void closeAccount(String card, String password) {
 		Account user = accountMapper.findByCard(card);
+		assertNotDemoAccount(user);
 		BigDecimal balance = user.getBalance();
 		String decryptedPassword = decryptUserPassword(password);
 		if (!bcrypt.matches(decryptedPassword, user.getPassword())) {
@@ -401,5 +405,17 @@ public class AccountServiceImpl implements AccountService {
 		LocalDateTime threshold = LocalDateTime.now(ZoneId.of("Asia/Shanghai")).minusDays(15);
 		int delCount = accountMapper.deleteCancelAccount(threshold);
 		log.info("北京时间{},已注销账户数据已删除，共删除 {} 条", LocalDateTime.now(), delCount);
+	}
+
+	/**
+	 * 校验指定 Account 是否不是测试账户。
+	 *
+	 * @param account 待校验的账户
+	 * @throws AccountVerificationException 当账户状态为 TEST 时抛出
+	 */
+	private void assertNotDemoAccount(Account account){
+		if ("TEST".equals(account.getStatus())){
+			throw new AccountVerificationException("账户为测试账户，不能进行此操作");
+		}
 	}
 }

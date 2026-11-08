@@ -5,7 +5,7 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # 将 jar 包复制进镜像
-COPY atm-3.2.0-RELEASE.jar app.jar
+COPY atm-3.2.1-RELEASE.jar app.jar
 
 # 暴露端口
 EXPOSE 8090

@@ -7,17 +7,18 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.NonNull;
+import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 
 import java.io.IOException;
 
-@Slf4j
 @Component
+@RequiredArgsConstructor
 public class TokenInterceptor implements HandlerInterceptor {
+	private final JwtUtils jwtUtils;
 	/**
 	 * 在请求处理之前进行拦截，验证请求的令牌。
 	 *
@@ -36,7 +37,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 			return reject(response, "未登录");
 		}
 		try {
-			Claims claims = JwtUtils.parseToken(token);
+			Claims claims = jwtUtils.parseToken(token);
 			request.setAttribute(CurrentUser.ATTR, claims.get("card", String.class));  // 后面比对要用
 		} catch (JwtException e) {
 			return reject(response, "登录已失效，请重新登录");

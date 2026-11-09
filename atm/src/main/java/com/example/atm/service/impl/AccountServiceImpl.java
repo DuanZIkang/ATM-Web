@@ -39,7 +39,7 @@ import static com.example.atm.Utils.RedisConstants.LOCK_KEY;
 @Service
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
-
+	private final JwtUtils jwtUtils;
 	private final AccountMapper accountMapper;
 	private final TransactionMapper transactionMapper;
 	private final TransactionService transactionService;
@@ -122,7 +122,7 @@ public class AccountServiceImpl implements AccountService {
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("card", account.getCard());
 		claims.put("name", account.getName());
-		String token = JwtUtils.generateToken(claims);
+		String token = jwtUtils.generateToken(claims);
 		stringRedisTemplate.delete(FAIL_KEY + card);
 		//  返回 DTO，不含密码字段
 		return new LoginResponse(

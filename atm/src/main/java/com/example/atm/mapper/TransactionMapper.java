@@ -21,6 +21,7 @@ public interface TransactionMapper {
 	@Select("SELECT id, card, type, amount, remark, to_name AS toName, time FROM `transaction` WHERE card =#{card} " +
 			"ORDER BY time DESC")
 	List<Transaction> allTransactions(String card);
+
 	@Select("SELECT COALESCE(ROUND(SUM(amount), 2), 0)" +
 			"FROM `transaction`" +
 			"WHERE card = #{card}" +

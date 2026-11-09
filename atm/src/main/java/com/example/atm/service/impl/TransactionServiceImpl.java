@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -33,7 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
         t.setType(type);
         t.setAmount(amount);
         t.setRemark(remark);
-        t.setTime(LocalDateTime.now());
+        t.setTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
         mapper.insert(t);
     }
 
@@ -47,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
         out.setAmount(amount);
         out.setRemark("转账给：" + toName);
         out.setToName(toName);
-        out.setTime(LocalDateTime.now());
+        out.setTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
         mapper.insert(out);
 
         // 转入记录：显示“来自：对方姓名”
@@ -57,7 +58,7 @@ public class TransactionServiceImpl implements TransactionService {
         in.setAmount(amount);
         in.setRemark("来自：" + fromName);
         in.setToName(fromName);
-        in.setTime(LocalDateTime.now());
+        in.setTime(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
         mapper.insert(in);
     }
 

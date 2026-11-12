@@ -12,6 +12,7 @@ import TransactionRecords from "@/views/TransactionRecords.vue";
 import AdminLayout from "@/views/admin/AdminLayout.vue";
 import LockedAccounts from "@/views/admin/LockedAccounts.vue";
 import LimitAdjust from "@/views/admin/LimitAdjust.vue";
+import Limit from "@/views/Limit.vue";
 
 const routes = [
     {
@@ -63,6 +64,11 @@ const routes = [
         path: '/transaction-records',
         component: TransactionRecords,
         meta: { title: "交易记录 " }
+    },
+    {
+        path: '/limit',
+        component: Limit,
+        meta: { title: "调整限额 " }
     },
     {
         // 管理后台：新增页面只需在 children 里加一项，并在 AdminLayout 的 menu 里加菜单

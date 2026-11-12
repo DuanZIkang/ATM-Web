@@ -33,4 +33,6 @@ public class Account implements Serializable {
     private String token;
 	private LocalDateTime closeTime;
     private String role;
+    private BigDecimal maxLimit;
+    private BigDecimal minLimit;
 }

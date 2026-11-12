@@ -18,8 +18,10 @@
           <el-button class="btn" @click="router.push('/deposit')">存款</el-button>
           <el-button class="btn" @click="router.push('/withdraw')">取款</el-button>
           <el-button class="btn" @click="router.push('/transfer')">转账</el-button>
+          <el-button class="btn" @click="router.push('/limit')">调整限额</el-button>
           <el-button class="btn" @click="router.push('/change-password')">修改密码</el-button>
           <el-button class="btn" @click="router.push('/transaction-records')">交易记录</el-button>
+          <el-button class="btn" @click="router.push('/limit')">调整限额</el-button>
           <el-button class="btn" @click="dialogVisible = true">注销账户</el-button>
           <el-button v-if="isAdmin" class="btn" type="primary" @click="router.push('/admin/lock')">管理后台</el-button>
         </div>

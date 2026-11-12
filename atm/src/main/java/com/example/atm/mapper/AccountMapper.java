@@ -17,7 +17,9 @@ public interface AccountMapper {
 			           daily_limit AS dailyLimit,
 			           sex,
 			           status,
-			           role
+			           role,
+			           max_limit AS maxLimit,
+			           min_limit AS minLimit
 			    FROM account
 			    WHERE card = #{card}
 			""")
@@ -32,15 +34,17 @@ public interface AccountMapper {
 			           sex,
 			           status,
 			           close_time AS closeTime,
-			           role
+			           role,
+			           max_limit AS maxLimit,
+			           min_limit AS minLimit
 			    FROM account
 			    WHERE card = #{card}
 			""")
 	Account login(String card);
 
 	@Insert("""
-			    INSERT INTO account(card, name, password, balance, daily_limit, sex, status)
-			    VALUES(#{card}, #{name}, #{password}, #{balance}, #{dailyLimit}, #{sex}, 'ACTIVE')
+			    INSERT INTO account(card, name, password, balance, daily_limit, sex, status, max_limit, min_limit)
+			    VALUES(#{card}, #{name}, #{password}, #{balance}, #{dailyLimit}, #{sex}, 'ACTIVE', #{maxLimit}, #{minLimit})
 			""")
 	void insert(Account account);
 
@@ -98,4 +102,10 @@ public interface AccountMapper {
 			WHERE card = #{card}
 			""")
 	void restoreCancelAccount(@Param("card") String card);
+    @Update("""
+			UPDATE account
+			SET daily_limit = #{limit}
+			WHERE card = #{card}
+		""")
+	void changeLimit(String card, BigDecimal limit);
 }

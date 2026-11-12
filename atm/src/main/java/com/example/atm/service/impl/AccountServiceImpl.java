@@ -1,5 +1,6 @@
 package com.example.atm.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.example.atm.Utils.JwtUtils;
 import com.example.atm.Utils.PasswordUtils;
 import com.example.atm.common.exception.LoginFailedException;
@@ -69,12 +70,15 @@ public class AccountServiceImpl implements AccountService {
 		if (!decrypted.matches("\\d{6}")) {
 			throw new DataFormatException("密码格式异常");
 		}
-
+		// 用户基本信息
 		Account account = new Account();
 		account.setName(req.getName().trim());
 		account.setSex(req.getSex());
 		account.setDailyLimit(req.getDailyLimit());
 		account.setBalance(BigDecimal.ZERO);
+		// 初始化最大限额为当前限额+1000 最小限额为当前限额
+		account.setMaxLimit(req.getDailyLimit().add(BigDecimal.valueOf(1000)));
+		account.setMinLimit(req.getDailyLimit());
 		//  存 BCrypt hash，而不是明文
 		account.setPassword(bcrypt.encode(decrypted));
 
@@ -98,20 +102,20 @@ public class AccountServiceImpl implements AccountService {
 		Account account = accountMapper.login(card);
 		//注销时间超过7天或查不到账户统一记录卡号不存在并返回通用错误提示
 		if (account == null) {
-			loginFail(card,null);
+			loginFail(card, null);
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		boolean cancelled = "CANCEL".equals(account.getStatus());
 		LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
 		if (cancelled && account.getCloseTime() != null
 				&& now.isAfter(account.getCloseTime().plusDays(7))) {
-			loginFail(card,account.getStatus());
+			loginFail(card, account.getStatus());
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		String decryptedPassword = decryptUserPassword(password);
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
-			loginFail(card,account.getStatus());
+			loginFail(card, account.getStatus());
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		if (cancelled) {
@@ -123,23 +127,17 @@ public class AccountServiceImpl implements AccountService {
 		claims.put("card", account.getCard());
 		claims.put("name", account.getName());
 		String token;
-		if (card.matches("[a-z]+") && account.getRole().equals("ADMIN")){
+		if (card.matches("[a-z]+") && account.getRole().equals("ADMIN")) {
 			// 特性卡号使用特殊的jwt密钥
 			token = jwtUtils.getAdminToken(claims);
-		}else {
+		} else {
 			token = jwtUtils.generateToken(claims);
 		}
 		stringRedisTemplate.delete(FAIL_KEY + card);
-		//  返回 DTO，不含密码字段
-		return new LoginResponse(
-				account.getCard(),
-				account.getName(),
-				account.getSex(),
-				account.getDailyLimit(),
-				account.getBalance(),
-				token,
-				account.getRole()
-		);
+		//  返回 DTO，不含密码字段等敏感字段
+		LoginResponse rep = BeanUtil.copyProperties(account, LoginResponse.class);
+		rep.setToken(token);
+		return rep;
 	}
 
 	private @NonNull String decryptUserPassword(String password) {
@@ -266,11 +264,12 @@ public class AccountServiceImpl implements AccountService {
 	 * <p>只有当账户是非测试账号且余额为零时，才能注销该账户。</p>
 	 * <p>如果账户余额不为零，则会抛出 {@code BalanceNotZeroException} 异常，
 	 * 且不会注销该账户。</p>
-	 *<p>如果账户状态为 TEST，则会抛出 {@code AccountVerificationException} 异常，
+	 * <p>如果账户状态为 TEST，则会抛出 {@code AccountVerificationException} 异常，
 	 * 且不会注销该账户。</p>
+	 *
 	 * @param card     账户卡号
 	 * @param password 账户密码
-	 * @throws BalanceNotZeroException 如果账户余额不为零
+	 * @throws BalanceNotZeroException      如果账户余额不为零
 	 * @throws AccountVerificationException 如果账户状态为 TEST
 	 */
 	@Override
@@ -290,6 +289,17 @@ public class AccountServiceImpl implements AccountService {
 			// 余额在读取之后发生了变动（或状态已变），统一终止
 			throw new ConcurrentUpdateException("账户状态已变化，请重试");
 		}
+	}
+
+	@Override
+	public void changeLimit(String card,BigDecimal limit) {
+		Account account = accountMapper.findByCard(card);
+		BigDecimal max = account.getMaxLimit();
+		BigDecimal min = account.getMinLimit();
+		if(limit.compareTo(min)<0||limit.compareTo(max)>0){
+			throw new DataFormatException("新的限额不在限额范围内！");
+		}
+		accountMapper.changeLimit(card,limit);
 	}
 
 	/**
@@ -331,10 +341,10 @@ public class AccountServiceImpl implements AccountService {
 	/**
 	 * 对失败的卡号进行失败计数，并在失败次数达到一定程度后进行阶段锁定
 	 *
-	 * @param card 卡号
+	 * @param card   卡号
 	 * @param status 卡状态
 	 */
-	private void loginFail(String card,String status) {
+	private void loginFail(String card, String status) {
 		// 测试卡不计数
 		if (status != null && status.equals("TEST")) {
 			return;
@@ -425,8 +435,8 @@ public class AccountServiceImpl implements AccountService {
 	 * @param account 待校验的账户
 	 * @throws AccountVerificationException 当账户状态为 TEST 时抛出
 	 */
-	private void assertNotDemoAccount(Account account){
-		if ("TEST".equals(account.getStatus())){
+	private void assertNotDemoAccount(Account account) {
+		if ("TEST".equals(account.getStatus())) {
 			throw new AccountVerificationException("账户为测试账户，不能进行此操作");
 		}
 	}

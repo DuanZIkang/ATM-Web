@@ -13,7 +13,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>atm</artifactId>
-    <version>3.2.1-RELEASE</version>
+    <version>4.0.0-RELEASE</version>
     <name>atm</name>
     <description>atm</description>
 

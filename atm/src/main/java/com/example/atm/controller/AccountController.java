@@ -84,10 +84,11 @@ public class AccountController {
 		CurrentUser.assertSelf(card);
 		return Result.ok(transactionService.getRecentTransactions(card));
 	}
+
 	@PostMapping("/close")
 	public Result closeAccount(@RequestBody Account req) {
 		CurrentUser.assertSelf(req.getCard());
-		accountService.closeAccount(req.getCard(),req.getPassword());
+		accountService.closeAccount(req.getCard(), req.getPassword());
 		return Result.ok("注销成功");
 	}
 }

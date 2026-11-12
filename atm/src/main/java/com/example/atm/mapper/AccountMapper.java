@@ -16,7 +16,8 @@ public interface AccountMapper {
 			           balance,
 			           daily_limit AS dailyLimit,
 			           sex,
-			           status
+			           status,
+			           role
 			    FROM account
 			    WHERE card = #{card}
 			""")
@@ -30,7 +31,8 @@ public interface AccountMapper {
 			           daily_limit AS dailyLimit,
 			           sex,
 			           status,
-			           close_time AS closeTime
+			           close_time AS closeTime,
+			           role
 			    FROM account
 			    WHERE card = #{card}
 			""")

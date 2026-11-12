@@ -9,6 +9,9 @@ import Withdraw from '../views/Withdraw.vue'
 import Transfer from '../views/Transfer.vue'
 import ChangePassword from "@/views/ChangePassword.vue";
 import TransactionRecords from "@/views/TransactionRecords.vue";
+import AdminLayout from "@/views/admin/AdminLayout.vue";
+import LockedAccounts from "@/views/admin/LockedAccounts.vue";
+import LimitAdjust from "@/views/admin/LimitAdjust.vue";
 
 const routes = [
     {
@@ -60,6 +63,16 @@ const routes = [
         path: '/transaction-records',
         component: TransactionRecords,
         meta: { title: "交易记录 " }
+    },
+    {
+        // 管理后台：新增页面只需在 children 里加一项，并在 AdminLayout 的 menu 里加菜单
+        path: '/admin',
+        component: AdminLayout,
+        redirect: '/admin/lock',
+        children: [
+            { path: 'lock', component: LockedAccounts, meta: { title: "锁定账户 " } },
+            { path: 'limit', component: LimitAdjust, meta: { title: "限额调整 " } }
+        ]
     }
 ]
 

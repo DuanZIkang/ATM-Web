@@ -37,7 +37,7 @@ public class TokenInterceptor implements HandlerInterceptor {
 			return reject(response, "未登录");
 		}
 		try {
-			Claims claims = jwtUtils.parseToken(token);
+			Claims claims = jwtUtils.parseUserOrAdminToken(token);
 			request.setAttribute(CurrentUser.ATTR, claims.get("card", String.class));  // 后面比对要用
 		} catch (JwtException e) {
 			return reject(response, "登录已失效，请重新登录");

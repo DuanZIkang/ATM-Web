@@ -16,4 +16,5 @@ public class LoginResponse {
 	private BigDecimal dailyLimit;
 	private BigDecimal balance;
 	private String token;
+	private String role;
 }

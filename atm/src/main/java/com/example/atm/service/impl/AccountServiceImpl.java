@@ -98,20 +98,20 @@ public class AccountServiceImpl implements AccountService {
 		Account account = accountMapper.login(card);
 		//注销时间超过7天或查不到账户统一记录卡号不存在并返回通用错误提示
 		if (account == null) {
-			loginFail(card);
+			loginFail(card,null);
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		boolean cancelled = "CANCEL".equals(account.getStatus());
 		LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
 		if (cancelled && account.getCloseTime() != null
 				&& now.isAfter(account.getCloseTime().plusDays(7))) {
-			loginFail(card);
+			loginFail(card,account.getStatus());
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		String decryptedPassword = decryptUserPassword(password);
 		//  BCrypt 比对，matches() 内部处理盐，无需手动提取
 		if (!bcrypt.matches(decryptedPassword, account.getPassword())) {
-			loginFail(card);
+			loginFail(card,account.getStatus());
 			throw new LoginFailedException("卡号或密码错误");
 		}
 		if (cancelled) {
@@ -122,7 +122,13 @@ public class AccountServiceImpl implements AccountService {
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("card", account.getCard());
 		claims.put("name", account.getName());
-		String token = jwtUtils.generateToken(claims);
+		String token;
+		if (card.matches("[a-z]+") && account.getRole().equals("ADMIN")){
+			// 特性卡号使用特殊的jwt密钥
+			token = jwtUtils.getAdminToken(claims);
+		}else {
+			token = jwtUtils.generateToken(claims);
+		}
 		stringRedisTemplate.delete(FAIL_KEY + card);
 		//  返回 DTO，不含密码字段
 		return new LoginResponse(
@@ -131,7 +137,8 @@ public class AccountServiceImpl implements AccountService {
 				account.getSex(),
 				account.getDailyLimit(),
 				account.getBalance(),
-				token
+				token,
+				account.getRole()
 		);
 	}
 
@@ -325,8 +332,13 @@ public class AccountServiceImpl implements AccountService {
 	 * 对失败的卡号进行失败计数，并在失败次数达到一定程度后进行阶段锁定
 	 *
 	 * @param card 卡号
+	 * @param status 卡状态
 	 */
-	private void loginFail(String card) {
+	private void loginFail(String card,String status) {
+		// 测试卡不计数
+		if (status != null && status.equals("TEST")) {
+			return;
+		}
 		String failKey = FAIL_KEY + card;
 		// 使用原子操作递增计数（线程安全）
 		Long failCount = stringRedisTemplate.opsForValue().increment(failKey, 1);

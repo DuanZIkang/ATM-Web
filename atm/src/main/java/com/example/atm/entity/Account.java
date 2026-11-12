@@ -1,10 +1,7 @@
 package com.example.atm.entity;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -18,8 +15,7 @@ import java.time.LocalDateTime;
  *   limit -> limit
  * 这样前端 Home.vue 能直接读取 info.sex 和 info.limit
  */
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class Account implements Serializable {
@@ -36,4 +32,5 @@ public class Account implements Serializable {
     private String status;
     private String token;
 	private LocalDateTime closeTime;
+    private String role;
 }

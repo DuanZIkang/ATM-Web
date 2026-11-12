@@ -21,6 +21,7 @@
           <el-button class="btn" @click="router.push('/change-password')">修改密码</el-button>
           <el-button class="btn" @click="router.push('/transaction-records')">交易记录</el-button>
           <el-button class="btn" @click="dialogVisible = true">注销账户</el-button>
+          <el-button v-if="isAdmin" class="btn" type="primary" @click="router.push('/admin/lock')">管理后台</el-button>
         </div>
       </div>
 
@@ -43,7 +44,9 @@
   >
     <!-- 第一步：提示 -->
     <div v-if="step === 1" class="tip">
-      <el-icon class="tip-icon" :size="24"><WarningFilled /></el-icon>
+      <el-icon class="tip-icon" :size="24">
+        <WarningFilled/>
+      </el-icon>
       <div>
         <p class="tip-title">确认要注销账户吗？</p>
         <p class="tip-desc">
@@ -89,11 +92,11 @@ import {useRouter} from "vue-router";
 import {ref, onMounted} from "vue";
 import axios from "axios";
 import {ElMessage} from "element-plus";
-import { WarningFilled } from '@element-plus/icons-vue'
+import {WarningFilled} from '@element-plus/icons-vue'
 import {encryptPassword} from "@/assets/scripts/encryption.js";
 import request from "@/utils/request.js";
-const msg = ref("");
 
+const isAdmin = ref(false);
 // 路由
 const router = useRouter();
 
@@ -198,7 +201,8 @@ async function loadAccountInfo(card, token) {
     document.getElementById("balance").textContent = data.balance;
     document.getElementById("gender").textContent = data.sex || "—";
     document.getElementById("limit").textContent = data.dailyLimit || 0;
-
+    // 根据后端返回的角色决定是否显示管理员入口
+    isAdmin.value = data.role === "ADMIN";
     // 同步更新 sessionStorage 中的余额信息，保持数据一致性
     const userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
     userInfo.balance = data.balance;
@@ -208,7 +212,7 @@ async function loadAccountInfo(card, token) {
     account.value.card = data.card;
   } catch (err) {
     // 请求失败时提示用户
-    alert("账号信息加载失败");
+    ElMessage.error("账号信息加载失败")
   }
 }
 
@@ -302,16 +306,19 @@ onMounted(() => {
   gap: 12px;
   align-items: flex-start;
 }
+
 .tip-icon {
   color: var(--el-color-warning);
   margin-top: 2px;
 }
+
 .tip-title {
   margin: 0 0 6px;
   font-size: 16px;
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
+
 .tip-desc {
   margin: 0;
   line-height: 1.6;

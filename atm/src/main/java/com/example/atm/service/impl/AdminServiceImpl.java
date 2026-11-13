@@ -40,10 +40,11 @@ public class AdminServiceImpl implements AdminService {
 	@Transactional(rollbackFor = Exception.class)
 	public void limit(String card, BigDecimal max, BigDecimal min) {
 		log.info("设置账号{}的额度限制", card);
-		Account account = accountMapper.findByCard(card);
-
+		if (max.compareTo(min) <= 0) {
+			throw new BalanceException("最大值必须大于最小值");
+		}
 		// 获取当前限额并调整（如果超出新范围）
-		BigDecimal currentLimit = account.getDailyLimit();
+		BigDecimal currentLimit = accountMapper.findByCard(card).getDailyLimit();
 		if (currentLimit != null) {
 			if (currentLimit.compareTo(max) > 0) {
 				log.warn("当前限额{}超过新的最大值{}，强制调整为{}", currentLimit, max, max);

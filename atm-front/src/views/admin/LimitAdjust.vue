@@ -3,11 +3,7 @@ import request from "@/utils/request";
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
 
-// ===== 接口约定（后端待开发，按此对接）=====
-// 查询：GET  /admin/limit?card=xxx
-//       data: { card, name, status, dailyLimit, minLimit, maxLimit }
-// 设置：POST /admin/limit  { card, minLimit, maxLimit }
-//       data: "调整成功"
+
 const card = ref("");
 const account = ref(null); // 查询到的账户信息
 const minLimit = ref("");

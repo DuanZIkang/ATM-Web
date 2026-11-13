@@ -1,5 +1,6 @@
 package com.example.atm.controller;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.example.atm.Utils.CurrentUser;
 import com.example.atm.common.Result;
 import com.example.atm.dto.*;
@@ -34,8 +35,8 @@ public class AccountController {
 		CurrentUser.assertSelf(card);
 		Account acc = accountService.getInfo(card);
 		if (acc == null) return Result.err("账号不存在");
-		acc.setPassword(null); //  查询信息时也不返回密码
-		return Result.ok(acc);
+		InfoResponse response = BeanUtil.copyProperties(acc, InfoResponse.class);
+		return Result.ok(response);
 	}
 
 	@PostMapping("/deposit")
